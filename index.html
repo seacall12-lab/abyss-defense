@@ -1,67 +1,55 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Abyss Defense</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Abyss Defense v0.4</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main class="app">
-    <header class="top-bar">
+    <header class="top-header">
       <div>
         <h1>Abyss Defense</h1>
-        <p class="subtitle">Mobile Tower Defense Prototype</p>
+        <p>v0.4 Growth Defense</p>
       </div>
-      <button id="resetBtn" class="small-btn">초기화</button>
+      <div id="statusText" class="status-pill">대기 중</div>
     </header>
 
-    <section class="status-panel">
-      <div>
-        <span class="label">Wave</span>
-        <strong id="waveText">0 / 10</strong>
-      </div>
-      <div>
-        <span class="label">Gold</span>
-        <strong id="goldText">150</strong>
-      </div>
-      <div>
-        <span class="label">Base HP</span>
-        <strong id="hpText">10</strong>
-      </div>
+    <section class="resource-bar" aria-label="게임 상태">
+      <div class="resource-card"><span>Gold</span><strong id="goldText">0</strong></div>
+      <div class="resource-card"><span>Base HP</span><strong id="baseHpText">0</strong></div>
+      <div class="resource-card"><span>Wave</span><strong id="waveText">1/20</strong></div>
     </section>
 
-    <section class="canvas-wrap">
-      <canvas id="gameCanvas"></canvas>
+    <section class="canvas-card">
+      <canvas id="gameCanvas" width="360" height="450" aria-label="Abyss Defense game board"></canvas>
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
     </section>
 
-    <section class="tower-panel">
-      <button class="tower-btn active" data-tower="archer">
-        <strong>궁수</strong>
-        <span>50G / 빠른 단일</span>
-      </button>
-      <button class="tower-btn" data-tower="cannon">
-        <strong>대포</strong>
-        <span>90G / 범위 피해</span>
-      </button>
-      <button class="tower-btn" data-tower="ice">
-        <strong>얼음</strong>
-        <span>80G / 둔화</span>
-      </button>
+    <section class="control-row" aria-label="게임 조작">
+      <button id="startWaveBtn" class="primary-btn" type="button">웨이브 시작</button>
+      <button id="speedBtn" type="button">1x</button>
+      <button id="pauseBtn" type="button">일시정지</button>
+      <button id="resetBtn" class="danger-btn" type="button">초기화</button>
     </section>
 
-    <section class="action-panel">
-      <button id="startWaveBtn" class="primary-btn">웨이브 시작</button>
-      <button id="upgradeBtn" class="secondary-btn">선택 타워 강화</button>
+    <section class="tower-section">
+      <div class="section-title">타워 배치</div>
+      <div id="towerCards" class="tower-cards"></div>
     </section>
 
-    <section class="message-panel">
-      <p id="messageText">
-        타워를 선택한 뒤 빈 타일을 터치해서 배치하세요.
-      </p>
+    <section class="panel-wrap">
+      <article id="towerPanel" class="info-panel"></article>
+      <article id="heroPanel" class="info-panel"></article>
     </section>
+
+    <footer class="guide-text">
+      빈 타일을 누르면 선택한 타워를 설치합니다. 설치된 타워를 누르면 강화하거나 판매할 수 있습니다.
+    </footer>
   </main>
 
-  <script src="main.js"></script>
+  <script src="data.js" defer></script>
+  <script src="main.js" defer></script>
 </body>
 </html>
