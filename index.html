@@ -1,1 +1,67 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Abyss Defense</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app">
+    <header class="top-bar">
+      <div>
+        <h1>Abyss Defense</h1>
+        <p class="subtitle">Mobile Tower Defense Prototype</p>
+      </div>
+      <button id="resetBtn" class="small-btn">초기화</button>
+    </header>
 
+    <section class="status-panel">
+      <div>
+        <span class="label">Wave</span>
+        <strong id="waveText">0 / 10</strong>
+      </div>
+      <div>
+        <span class="label">Gold</span>
+        <strong id="goldText">150</strong>
+      </div>
+      <div>
+        <span class="label">Base HP</span>
+        <strong id="hpText">10</strong>
+      </div>
+    </section>
+
+    <section class="canvas-wrap">
+      <canvas id="gameCanvas"></canvas>
+    </section>
+
+    <section class="tower-panel">
+      <button class="tower-btn active" data-tower="archer">
+        <strong>궁수</strong>
+        <span>50G / 빠른 단일</span>
+      </button>
+      <button class="tower-btn" data-tower="cannon">
+        <strong>대포</strong>
+        <span>90G / 범위 피해</span>
+      </button>
+      <button class="tower-btn" data-tower="ice">
+        <strong>얼음</strong>
+        <span>80G / 둔화</span>
+      </button>
+    </section>
+
+    <section class="action-panel">
+      <button id="startWaveBtn" class="primary-btn">웨이브 시작</button>
+      <button id="upgradeBtn" class="secondary-btn">선택 타워 강화</button>
+    </section>
+
+    <section class="message-panel">
+      <p id="messageText">
+        타워를 선택한 뒤 빈 타일을 터치해서 배치하세요.
+      </p>
+    </section>
+  </main>
+
+  <script src="main.js"></script>
+</body>
+</html>
