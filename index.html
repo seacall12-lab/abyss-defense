@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Abyss Defense v0.4</title>
+  <title>Abyss Defense v0.6</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -11,26 +11,40 @@
     <header class="top-header">
       <div>
         <h1>Abyss Defense</h1>
-        <p>v0.4 Growth Defense</p>
+        <p>v0.6 Strategy Update</p>
       </div>
       <div id="statusText" class="status-pill">대기 중</div>
     </header>
 
     <section class="resource-bar" aria-label="게임 상태">
-      <div class="resource-card"><span>Gold</span><strong id="goldText">0</strong></div>
-      <div class="resource-card"><span>Base HP</span><strong id="baseHpText">0</strong></div>
-      <div class="resource-card"><span>Wave</span><strong id="waveText">1/20</strong></div>
+      <div class="resource-card">
+        <span>Gold</span>
+        <strong id="goldText">0</strong>
+      </div>
+      <div class="resource-card">
+        <span>Base HP</span>
+        <strong id="baseHpText">0</strong>
+      </div>
+      <div class="resource-card">
+        <span>Wave</span>
+        <strong id="waveText">1/20</strong>
+      </div>
     </section>
 
     <section class="canvas-card">
       <canvas id="gameCanvas" width="360" height="450" aria-label="Abyss Defense game board"></canvas>
+
+      <div id="towerActionMenu" class="tower-action-menu" aria-live="polite"></div>
+
       <div id="toast" class="toast" role="status" aria-live="polite"></div>
     </section>
 
     <section class="control-row" aria-label="게임 조작">
       <button id="startWaveBtn" class="primary-btn" type="button">웨이브 시작</button>
+      <button id="heroSkillBtn" class="skill-btn" type="button">성광 폭발</button>
       <button id="speedBtn" type="button">1x</button>
       <button id="pauseBtn" type="button">일시정지</button>
+      <button id="autoWaveBtn" type="button">자동 OFF</button>
       <button id="resetBtn" class="danger-btn" type="button">초기화</button>
     </section>
 
@@ -40,14 +54,33 @@
     </section>
 
     <section class="panel-wrap">
-      <article id="towerPanel" class="info-panel"></article>
+      <article id="nextWavePanel" class="info-panel"></article>
       <article id="heroPanel" class="info-panel"></article>
+      <article id="relicPanel" class="info-panel relic-panel"></article>
     </section>
 
     <footer class="guide-text">
-      빈 타일을 누르면 선택한 타워를 설치합니다. 설치된 타워를 누르면 강화하거나 판매할 수 있습니다.
+      빈 타일을 누르면 선택한 타워를 설치합니다. 설치된 타워를 누르면 캔버스 위에서 바로 강화하거나 판매할 수 있습니다.
     </footer>
   </main>
+
+  <div id="traitModal" class="modal-backdrop" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-kicker">Tower Trait</div>
+      <h2 id="traitModalTitle">타워 특성 선택</h2>
+      <p id="traitModalDesc">Lv.3에 도달한 타워의 성장 방향을 선택하세요.</p>
+      <div id="traitOptions" class="choice-list"></div>
+    </div>
+  </div>
+
+  <div id="relicModal" class="modal-backdrop" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-kicker">Boss Reward</div>
+      <h2>보스 처치 보상</h2>
+      <p>유물 1개를 선택하세요. 선택한 유물 효과는 저장됩니다.</p>
+      <div id="relicOptions" class="choice-list"></div>
+    </div>
+  </div>
 
   <script src="data.js" defer></script>
   <script src="main.js" defer></script>
