@@ -1,10 +1,14 @@
-/* Abyss Defense v0.7 - Data Tables */
+/* Abyss Defense v0.7.1 - Data Tables */
 (function () {
-  const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+  "use strict";
+
+  function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
 
   const DATA = {
-    version: "0.7.0",
-    saveKey: "abyssDefense_v07_save",
+    version: "0.7.1",
+    saveKey: "abyssDefense_v071_save",
 
     board: {
       cols: 8,
@@ -24,6 +28,8 @@
         pathOuter: "rgba(88, 69, 45, 0.94)",
         pathInner: "rgba(191, 132, 69, 0.96)",
         decor: "stone",
+        monsterHpPct: 0,
+        regenBonusPct: 0,
         path: [
           { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 }, { x: 2, y: 3 },
           { x: 5, y: 3 }, { x: 5, y: 5 }, { x: 1, y: 5 }, { x: 1, y: 8 },
@@ -31,6 +37,7 @@
         ],
         blocked: []
       },
+
       riftCanyon: {
         id: "riftCanyon",
         name: "균열 협곡",
@@ -43,6 +50,8 @@
         pathOuter: "rgba(59, 7, 100, 0.94)",
         pathInner: "rgba(147, 51, 234, 0.72)",
         decor: "rift",
+        monsterHpPct: 0.03,
+        regenBonusPct: 0,
         path: [
           { x: 0, y: 2 }, { x: 2, y: 2 }, { x: 2, y: 6 }, { x: 4, y: 6 },
           { x: 4, y: 1 }, { x: 6, y: 1 }, { x: 6, y: 7 }, { x: 7, y: 7 }
@@ -51,6 +60,7 @@
           { x: 3, y: 3 }, { x: 3, y: 4 }, { x: 4, y: 4 }, { x: 5, y: 4 }
         ]
       },
+
       toxicSwamp: {
         id: "toxicSwamp",
         name: "오염된 늪",
@@ -87,11 +97,83 @@
     },
 
     towers: {
-      archer: { id: "archer", name: "궁수탑", shortName: "궁수", symbol: "➹", color: "#73d13d", cost: 70, baseDamage: 18, baseRange: 2.6, baseAttackInterval: 0.72, maxLevel: 6, traitUnlockLevel: 3, description: "빠른 단일 공격" },
-      cannon: { id: "cannon", name: "대포탑", shortName: "대포", symbol: "●", color: "#ff9f43", cost: 115, baseDamage: 42, baseRange: 2.25, baseAttackInterval: 1.45, splashRadius: 0.82, maxLevel: 6, traitUnlockLevel: 3, description: "느리지만 범위 피해" },
-      ice: { id: "ice", name: "얼음탑", shortName: "얼음", symbol: "❄", color: "#4dd0e1", cost: 95, baseDamage: 9, baseRange: 2.35, baseAttackInterval: 1.05, slowFactor: 0.48, slowDuration: 1.55, maxLevel: 6, traitUnlockLevel: 3, description: "피해와 둔화" },
-      lightning: { id: "lightning", name: "번개탑", shortName: "번개", symbol: "ϟ", color: "#b37feb", cost: 135, baseDamage: 27, baseRange: 2.55, baseAttackInterval: 0.98, chainCount: 3, chainRange: 1.85, maxLevel: 6, traitUnlockLevel: 3, description: "연쇄 번개 공격" },
-      poison: { id: "poison", name: "독성탑", shortName: "독성", symbol: "☠", color: "#84cc16", cost: 125, baseDamage: 10, baseRange: 2.28, baseAttackInterval: 1.05, dotDamagePerSecond: 11, dotDuration: 3.2, maxLevel: 6, traitUnlockLevel: 3, description: "지속 독 피해" }
+      archer: {
+        id: "archer",
+        name: "궁수탑",
+        shortName: "궁수",
+        symbol: "➹",
+        color: "#73d13d",
+        cost: 70,
+        baseDamage: 18,
+        baseRange: 2.6,
+        baseAttackInterval: 0.72,
+        maxLevel: 6,
+        traitUnlockLevel: 3,
+        description: "빠른 단일 공격"
+      },
+      cannon: {
+        id: "cannon",
+        name: "대포탑",
+        shortName: "대포",
+        symbol: "●",
+        color: "#ff9f43",
+        cost: 115,
+        baseDamage: 42,
+        baseRange: 2.25,
+        baseAttackInterval: 1.45,
+        splashRadius: 0.82,
+        maxLevel: 6,
+        traitUnlockLevel: 3,
+        description: "느리지만 범위 피해"
+      },
+      ice: {
+        id: "ice",
+        name: "얼음탑",
+        shortName: "얼음",
+        symbol: "❄",
+        color: "#4dd0e1",
+        cost: 95,
+        baseDamage: 9,
+        baseRange: 2.35,
+        baseAttackInterval: 1.05,
+        slowFactor: 0.48,
+        slowDuration: 1.55,
+        maxLevel: 6,
+        traitUnlockLevel: 3,
+        description: "피해와 둔화"
+      },
+      lightning: {
+        id: "lightning",
+        name: "번개탑",
+        shortName: "번개",
+        symbol: "ϟ",
+        color: "#b37feb",
+        cost: 135,
+        baseDamage: 27,
+        baseRange: 2.55,
+        baseAttackInterval: 0.98,
+        chainCount: 3,
+        chainRange: 1.85,
+        maxLevel: 6,
+        traitUnlockLevel: 3,
+        description: "연쇄 번개 공격"
+      },
+      poison: {
+        id: "poison",
+        name: "독성탑",
+        shortName: "독성",
+        symbol: "☠",
+        color: "#84cc16",
+        cost: 125,
+        baseDamage: 10,
+        baseRange: 2.28,
+        baseAttackInterval: 1.05,
+        dotDamagePerSecond: 11,
+        dotDuration: 3.2,
+        maxLevel: 6,
+        traitUnlockLevel: 3,
+        description: "지속 독 피해"
+      }
     },
 
     towerTraits: {
@@ -154,7 +236,19 @@
       { id: 20, name: "최종 보스: 심연 군주", reward: 260, boss: true, recommendation: "최종 보스입니다. 보스 특화, 유물 효과, 히어로 스킬을 모두 활용하세요.", groups: [{ type: "darkPriest", count: 10, gap: 0.42, hpScale: 1.5 }, { type: "bossGolem", count: 2, gap: 1.0, hpScale: 1.15 }, { type: "abyssLord", count: 1, gap: 1.2, hpScale: 1.0 }] }
     ],
 
-    hero: { name: "아리아", title: "심연 수호자", x: 3.5, y: 6.55, baseDamage: 16, baseRange: 2.15, baseAttackInterval: 0.86, skillName: "성광 폭발", skillCooldown: 18, skillRadius: 2.45, projectileColor: "#fde047" },
+    hero: {
+      name: "아리아",
+      title: "심연 수호자",
+      x: 3.5,
+      y: 6.55,
+      baseDamage: 16,
+      baseRange: 2.15,
+      baseAttackInterval: 0.86,
+      skillName: "성광 폭발",
+      skillCooldown: 18,
+      skillRadius: 2.45,
+      projectileColor: "#fde047"
+    },
 
     heroPassives: [
       { level: 3, name: "전투 집중", description: "히어로 공격력 +8%", effects: { heroDamagePct: 0.08 } },
@@ -192,28 +286,35 @@
           dotDuration: tower.dotDuration ? Number((tower.dotDuration + (lv - 1) * 0.12).toFixed(2)) : 0
         };
       },
+
       towerUpgradeCost(tower, level) {
         if (level >= tower.maxLevel) return null;
         return Math.round(tower.cost * (0.72 + level * 0.42));
       },
+
       towerInvestedGold(tower, level) {
         let total = tower.cost;
-        for (let lv = 1; lv < level; lv += 1) total += Math.round(tower.cost * (0.72 + lv * 0.42));
+        for (let lv = 1; lv < level; lv += 1) {
+          total += Math.round(tower.cost * (0.72 + lv * 0.42));
+        }
         return total;
       },
+
       towerSellValue(tower, level) {
         return Math.floor(DATA.formulas.towerInvestedGold(tower, level) * 0.65);
       },
+
       monsterStats(monster, waveId, hpScale, map) {
         const waveFactor = 1 + Math.max(0, waveId - 1) * 0.115;
-        const mapHp = map && map.monsterHpPct ? 1 + map.monsterHpPct : 1;
+        const mapHpFactor = map && map.monsterHpPct ? 1 + map.monsterHpPct : 1;
         return {
-          hp: Math.round(monster.hp * waveFactor * (hpScale || 1) * mapHp),
+          hp: Math.round(monster.hp * waveFactor * (hpScale || 1) * mapHpFactor),
           speed: Number((monster.speed * (1 + Math.max(0, waveId - 1) * 0.006)).toFixed(3)),
           gold: Math.round(monster.gold * (1 + Math.max(0, waveId - 1) * 0.035)),
           exp: Math.round(monster.exp * (1 + Math.max(0, waveId - 1) * 0.04))
         };
       },
+
       heroStats(hero, level) {
         const lv = Math.max(1, level || 1);
         return {
@@ -222,6 +323,7 @@
           attackInterval: Number(Math.max(0.48, hero.baseAttackInterval - (lv - 1) * 0.022).toFixed(2))
         };
       },
+
       heroNextExp(level) {
         const lv = Math.max(1, level || 1);
         return Math.round(36 + lv * 24 + lv * lv * 5);
@@ -230,4 +332,4 @@
   };
 
   window.ABYSS_DATA = DATA;
-})();
+}());
