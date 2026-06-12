@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Abyss Defense v0.6</title>
+  <title>Abyss Defense v0.7</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -11,31 +11,25 @@
     <header class="top-header">
       <div>
         <h1>Abyss Defense</h1>
-        <p>v0.6 Strategy Update</p>
+        <p>v0.7 Map & Visual Update</p>
       </div>
       <div id="statusText" class="status-pill">대기 중</div>
     </header>
 
     <section class="resource-bar" aria-label="게임 상태">
-      <div class="resource-card">
-        <span>Gold</span>
-        <strong id="goldText">0</strong>
-      </div>
-      <div class="resource-card">
-        <span>Base HP</span>
-        <strong id="baseHpText">0</strong>
-      </div>
-      <div class="resource-card">
-        <span>Wave</span>
-        <strong id="waveText">1/20</strong>
-      </div>
+      <div class="resource-card"><span>Gold</span><strong id="goldText">0</strong></div>
+      <div class="resource-card"><span>Base HP</span><strong id="baseHpText">0</strong></div>
+      <div class="resource-card"><span>Wave</span><strong id="waveText">1/20</strong></div>
+    </section>
+
+    <section class="map-section">
+      <div class="section-title">맵 선택</div>
+      <div id="mapCards" class="map-cards"></div>
     </section>
 
     <section class="canvas-card">
       <canvas id="gameCanvas" width="360" height="450" aria-label="Abyss Defense game board"></canvas>
-
       <div id="towerActionMenu" class="tower-action-menu" aria-live="polite"></div>
-
       <div id="toast" class="toast" role="status" aria-live="polite"></div>
     </section>
 
@@ -60,7 +54,7 @@
     </section>
 
     <footer class="guide-text">
-      빈 타일을 누르면 선택한 타워를 설치합니다. 설치된 타워를 누르면 캔버스 위에서 바로 강화하거나 판매할 수 있습니다.
+      맵은 첫 웨이브 시작 전 또는 초기화 직후에 바꿀 수 있습니다. 설치된 타워를 누르면 캔버스 위에서 바로 강화/판매합니다.
     </footer>
   </main>
 
