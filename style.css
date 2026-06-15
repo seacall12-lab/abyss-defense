@@ -80,10 +80,6 @@ button:disabled {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* =========================
-   상단 HUD
-========================= */
-
 .hud {
   display: grid;
   grid-template-columns: minmax(90px, 1fr) auto auto;
@@ -93,7 +89,7 @@ button:disabled {
   padding: 7px 10px;
 
   border-bottom: 1px solid var(--line);
-  background: rgba(2, 6, 23, 0.94);
+  background: rgba(2, 6, 23, 0.95);
 
   z-index: 5;
 }
@@ -168,10 +164,6 @@ button:disabled {
   text-align: center;
 }
 
-/* =========================
-   게임 Canvas 영역
-========================= */
-
 .game-stage {
   position: relative;
   min-height: 0;
@@ -190,10 +182,6 @@ button:disabled {
   touch-action: none;
 }
 
-/* =========================
-   웨이브 시작 오버레이
-========================= */
-
 .wave-overlay-button {
   position: absolute;
   left: 50%;
@@ -211,8 +199,7 @@ button:disabled {
 
   background: rgba(2, 6, 23, 0.9);
 
-  box-shadow:
-    0 12px 30px rgba(0, 0, 0, 0.34);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.34);
 
   transform: translateX(-50%);
   backdrop-filter: blur(8px);
@@ -233,10 +220,6 @@ button:disabled {
   font-size: 14px;
 }
 
-/* =========================
-   토스트
-========================= */
-
 .toast {
   position: absolute;
   left: 50%;
@@ -249,7 +232,7 @@ button:disabled {
   border: 1px solid rgba(125, 211, 252, 0.24);
   border-radius: 999px;
 
-  background: rgba(2, 6, 23, 0.9);
+  background: rgba(2, 6, 23, 0.92);
   color: #e0f2fe;
 
   font-size: 11px;
@@ -268,10 +251,6 @@ button:disabled {
   transform: translate(-50%, 0);
 }
 
-/* =========================
-   타워 강화 팝업
-========================= */
-
 .tower-action-menu {
   position: absolute;
   z-index: 7;
@@ -283,10 +262,9 @@ button:disabled {
   border: 1px solid rgba(125, 211, 252, 0.35);
   border-radius: 15px;
 
-  background: rgba(2, 6, 23, 0.94);
+  background: rgba(2, 6, 23, 0.95);
 
-  box-shadow:
-    0 14px 36px rgba(0, 0, 0, 0.42);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.42);
 
   transform: translateX(-50%);
   backdrop-filter: blur(8px);
@@ -352,7 +330,6 @@ button:disabled {
   padding: 8px;
 
   border-radius: 10px;
-
   background: #1d4ed8;
 
   font-size: 11px;
@@ -363,10 +340,6 @@ button:disabled {
   background: rgba(239, 68, 68, 0.82);
 }
 
-/* =========================
-   타워 하단 퀵바
-========================= */
-
 .tower-dock {
   display: grid;
   grid-template-columns: 42px minmax(0, 1fr);
@@ -376,7 +349,7 @@ button:disabled {
   padding: 5px 7px;
 
   border-top: 1px solid var(--line);
-  background: rgba(2, 6, 23, 0.96);
+  background: rgba(2, 6, 23, 0.97);
 
   z-index: 5;
 }
@@ -395,21 +368,13 @@ button:disabled {
   border: 1px solid rgba(148, 163, 184, 0.18);
   border-radius: 11px;
 
-  background: rgba(17, 24, 39, 0.95);
-
+  background: rgba(17, 24, 39, 0.96);
   text-align: center;
 }
 
 .tower-quick.is-active {
   border-color: var(--tower-color, #38bdf8);
-
-  box-shadow:
-    0 0 0 2px
-    color-mix(
-      in srgb,
-      var(--tower-color, #38bdf8) 22%,
-      transparent
-    );
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.18);
 }
 
 .tower-quick.cancel {
@@ -436,10 +401,6 @@ button:disabled {
   font-size: 9px;
   font-weight: 900;
 }
-
-/* =========================
-   하단 조작바
-========================= */
 
 .control-dock {
   display: grid;
@@ -490,10 +451,6 @@ button:disabled {
       #b45309
     ) !important;
 }
-
-/* =========================
-   시작 맵 선택 화면
-========================= */
 
 .start-screen {
   position: absolute;
@@ -566,7 +523,7 @@ button:disabled {
   border: 1px solid var(--line);
   border-radius: 17px;
 
-  background: rgba(15, 23, 42, 0.88);
+  background: rgba(15, 23, 42, 0.9);
 
   text-align: left;
 }
@@ -600,10 +557,6 @@ button:disabled {
   line-height: 1.4;
 }
 
-/* =========================
-   바텀 시트
-========================= */
-
 .sheet-backdrop {
   position: absolute;
   inset: 0;
@@ -635,10 +588,9 @@ button:disabled {
   border-top: 1px solid rgba(125, 211, 252, 0.28);
   border-radius: 22px 22px 0 0;
 
-  background: rgba(2, 6, 23, 0.98);
+  background: rgba(2, 6, 23, 0.99);
 
-  box-shadow:
-    0 -20px 55px rgba(0, 0, 0, 0.52);
+  box-shadow: 0 -20px 55px rgba(0, 0, 0, 0.52);
 
   transform: translateY(105%);
   transition: transform 0.22s ease;
@@ -791,7 +743,6 @@ button:disabled {
   padding: 12px;
 
   border-radius: 12px;
-
   background: #253047;
 
   font-size: 12px;
@@ -801,10 +752,6 @@ button:disabled {
 .setting-actions .danger {
   background: rgba(239, 68, 68, 0.78);
 }
-
-/* =========================
-   특성 / 유물 모달
-========================= */
 
 .modal-backdrop {
   position: absolute;
@@ -876,9 +823,26 @@ button:disabled {
   line-height: 1.4;
 }
 
-/* =========================
-   작은 화면 대응
-========================= */
+.startup-error {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 9999;
+
+  padding: 12px;
+
+  border: 1px solid #ef4444;
+  border-radius: 12px;
+
+  background: rgba(69, 10, 10, 0.97);
+  color: #fee2e2;
+
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
 
 @media (max-height: 650px) {
   :root {
