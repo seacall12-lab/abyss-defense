@@ -28,6 +28,10 @@
     {
       name: "Strategy",
       file: "strategy.js"
+    },
+    {
+      name: "Missions",
+      file: "missions.js"
     }
   ];
 
@@ -97,6 +101,9 @@
   var Strategy =
     Abyss.Strategy;
 
+  var Missions =
+    Abyss.Missions;
+
   var lastTime = 0;
   var uiTimer = 0;
 
@@ -153,14 +160,15 @@
       Render.init();
 
       /*
-       * 진행도와 전략 모듈은
-       * 기본 UI와 Canvas 초기화 이후 연결한다.
+       * 추가 시스템은 기본 UI와 Canvas가
+       * 준비된 이후 초기화한다.
        */
       Progression.init();
       Strategy.init();
+      Missions.init();
 
       console.log(
-        "[Abyss] v0.9.5 정상 실행"
+        "[Abyss] v1.0.0 정상 실행"
       );
 
       window.requestAnimationFrame(
