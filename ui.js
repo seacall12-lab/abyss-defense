@@ -6,2906 +6,1482 @@
   var Data = window.Abyss.Data;
   var State = window.Abyss.State;
   var Combat = window.Abyss.Combat;
+  var Render = window.Abyss.Render;
 
-  var canvas;
-  var stage;
-  var ctx;
+  var el = {};
+  var sheetAutoPaused = false;
 
-  var viewportWidth = 360;
-  var viewportHeight = 450;
-
-  var tileSize = 44;
-  var boardWidth = 352;
-  var boardHeight = 440;
-
-  var boardOffsetX = 0;
-  var boardOffsetY = 0;
-
-  if (!Data || !State || !Combat) {
+  if (!Data || !State || !Combat || !Render) {
     throw new Error(
-      "render.js: data.js, state.js, combat.js가 먼저 로드되어야 합니다."
+      "ui.js: 앞선 JavaScript 파일이 모두 로드되어야 합니다."
     );
   }
 
   function init() {
-    canvas = document.getElementById("gameCanvas");
-    stage = document.getElementById("gameStage");
+    cacheElements();
+    buildMapCards();
+    buildTowerQuickBar();
+    bindEvents();
 
-    if (!canvas || !stage) {
-      throw new Error(
-        "render.js: Canvas 요소를 찾을 수 없습니다."
-      );
+    if (State.get().started) {
+      hideStartScreen();
+    } else {
+      showStartScreen();
     }
 
-    ctx = canvas.getContext("2d");
-
-    resize();
+    updateAll();
   }
 
-  function resize() {
-    var rect;
-    var dpr;
+  function cacheElements() {
+    el.startScreen =
+      document.getElementById("startScreen");
 
-    if (!canvas || !stage) {
-      return;
-    }
+    el.mapCards =
+      document.getElementById("mapCards");
 
-    rect = stage.getBoundingClientRect();
+    el.mapName =
+      document.getElementById("mapNameText");
 
-    viewportWidth = Math.max(
-      1,
-      Math.floor(rect.width)
-    );
+    el.gold =
+      document.getElementById("goldText");
 
-    viewportHeight = Math.max(
-      1,
-      Math.floor(rect.height)
-    );
+    el.baseHp =
+      document.getElementById("baseHpText");
 
-    tileSize = Math.min(
-      viewportWidth / Data.board.cols,
-      viewportHeight / Data.board.rows
-    );
+    el.wave =
+      document.getElementById("waveText");
 
-    boardWidth =
-      tileSize *
-      Data.board.cols;
+    el.status =
+      document.getElementById("statusText");
 
-    boardHeight =
-      tileSize *
-      Data.board.rows;
+    el.canvas =
+      document.getElementById("gameCanvas");
 
-    boardOffsetX =
-      (
-        viewportWidth -
-        boardWidth
-      ) / 2;
+    el.actionMenu =
+      document.getElementById("towerActionMenu");
 
-    boardOffsetY =
-      (
-        viewportHeight -
-        boardHeight
-      ) / 2;
+    el.waveOverlay =
+      document.getElementById("waveOverlayButton");
 
-    dpr =
-      window.devicePixelRatio ||
-      1;
+    el.waveOverlayTitle =
+      document.getElementById("waveOverlayTitle");
 
-    canvas.width =
-      Math.floor(
-        viewportWidth * dpr
-      );
+    el.waveOverlayName =
+      document.getElementById("waveOverlayName");
 
-    canvas.height =
-      Math.floor(
-        viewportHeight * dpr
-      );
+    el.waveOverlayHint =
+      document.getElementById("waveOverlayHint");
 
-    canvas.style.width =
-      viewportWidth + "px";
+    el.toast =
+      document.getElementById("toast");
 
-    canvas.style.height =
-      viewportHeight + "px";
+    el.towerQuickBar =
+      document.getElementById("towerQuickBar");
 
-    ctx.setTransform(
-      dpr,
-      0,
-      0,
-      dpr,
-      0,
-      0
-    );
+    el.cancelBuild =
+      document.getElementById("cancelBuildBtn");
 
-    if (
-      window.Abyss.UI &&
-      window.Abyss.UI.updateActionMenu
-    ) {
-      window.Abyss.UI.updateActionMenu();
-    }
-  }
+    el.startWave =
+      document.getElementById("startWaveBtn");
 
-  function getMetrics() {
-    return {
-      viewportWidth: viewportWidth,
-      viewportHeight: viewportHeight,
+    el.heroSkill =
+      document.getElementById("heroSkillBtn");
 
-      tileSize: tileSize,
+    el.speed =
+      document.getElementById("speedBtn");
 
-      boardWidth: boardWidth,
-      boardHeight: boardHeight,
+    el.pause =
+      document.getElementById("pauseBtn");
 
-      boardOffsetX: boardOffsetX,
-      boardOffsetY: boardOffsetY
-    };
-  }
+    el.info =
+      document.getElementById("infoBtn");
 
-  function screenToCell(clientX, clientY) {
-    var rect =
-      canvas.getBoundingClientRect();
+    el.sheetBackdrop =
+      document.getElementById("sheetBackdrop");
 
-    var screenX =
-      (
-        (
-          clientX -
-          rect.left
-        ) /
-        rect.width
-      ) *
-      viewportWidth;
+    el.bottomSheet =
+      document.getElementById("bottomSheet");
 
-    var screenY =
-      (
-        (
-          clientY -
-          rect.top
-        ) /
-        rect.height
-      ) *
-      viewportHeight;
+    el.sheetContent =
+      document.getElementById("sheetContent");
 
-    var localX =
-      screenX -
-      boardOffsetX;
-
-    var localY =
-      screenY -
-      boardOffsetY;
-
-    if (
-      localX < 0 ||
-      localY < 0 ||
-      localX >= boardWidth ||
-      localY >= boardHeight
-    ) {
-      return null;
-    }
-
-    return {
-      col: clamp(
-        Math.floor(
-          localX /
-          tileSize
-        ),
-        0,
-        Data.board.cols - 1
-      ),
-
-      row: clamp(
-        Math.floor(
-          localY /
-          tileSize
-        ),
-        0,
-        Data.board.rows - 1
-      )
-    };
-  }
-
-  function render() {
-    var current;
-    var shakeX;
-    var shakeY;
-
-    if (!ctx) {
-      return;
-    }
-
-    current = State.get();
-
-    ctx.clearRect(
-      0,
-      0,
-      viewportWidth,
-      viewportHeight
-    );
-
-    ctx.fillStyle =
-      "#020617";
-
-    ctx.fillRect(
-      0,
-      0,
-      viewportWidth,
-      viewportHeight
-    );
-
-    shakeX =
-      current.screenShake > 0
-        ? (
-            Math.random() -
-            0.5
-          ) *
-          tileSize *
-          0.12 *
-          current.screenShake
-        : 0;
-
-    shakeY =
-      current.screenShake > 0
-        ? (
-            Math.random() -
-            0.5
-          ) *
-          tileSize *
-          0.12 *
-          current.screenShake
-        : 0;
-
-    ctx.save();
-
-    ctx.translate(
-      boardOffsetX + shakeX,
-      boardOffsetY + shakeY
-    );
-
-    drawBackground();
-    drawPath();
-    drawBlockedTiles();
-    drawBuildHighlights();
-    drawTowers();
-    drawHero();
-    drawEnemies();
-    drawProjectiles();
-    drawEffects();
-    drawFloaters();
-
-    ctx.restore();
-
-    drawOverlayText();
-  }
-
-  function drawBackground() {
-    var map =
-      State.getMap();
-
-    var gradient =
-      ctx.createLinearGradient(
-        0,
-        0,
-        0,
-        boardHeight
+    el.sheetTabs =
+      Array.from(
+        document.querySelectorAll(".sheet-tab")
       );
 
-    var row;
-    var col;
+    el.traitModal =
+      document.getElementById("traitModal");
 
-    gradient.addColorStop(
-      0,
-      map.bgTop
-    );
+    el.traitModalTitle =
+      document.getElementById("traitModalTitle");
 
-    gradient.addColorStop(
-      1,
-      map.bgBottom
-    );
+    el.traitModalDesc =
+      document.getElementById("traitModalDesc");
 
-    ctx.fillStyle =
-      gradient;
+    el.traitOptions =
+      document.getElementById("traitOptions");
 
-    ctx.fillRect(
-      0,
-      0,
-      boardWidth,
-      boardHeight
-    );
+    el.relicModal =
+      document.getElementById("relicModal");
 
-    for (
-      row = 0;
-      row < Data.board.rows;
-      row += 1
-    ) {
-      for (
-        col = 0;
-        col < Data.board.cols;
-        col += 1
-      ) {
-        ctx.fillStyle =
-          (row + col) % 2 === 0
-            ? "rgba(255,255,255,0.022)"
-            : "rgba(255,255,255,0.038)";
+    el.relicOptions =
+      document.getElementById("relicOptions");
+  }
 
-        ctx.fillRect(
-          col * tileSize,
-          row * tileSize,
-          tileSize,
-          tileSize
+  function buildMapCards() {
+    el.mapCards.innerHTML = "";
+
+    Object.keys(Data.maps).forEach(
+      function (mapId) {
+        var map =
+          Data.maps[mapId];
+
+        var button =
+          document.createElement("button");
+
+        button.className =
+          "map-select-card";
+
+        button.type =
+          "button";
+
+        button.innerHTML =
+          "<strong>" +
+          map.name +
+          "</strong>" +
+
+          "<em>" +
+          map.difficulty +
+          "</em>" +
+
+          "<span>" +
+          map.description +
+          "<br>" +
+
+          "시작 골드 " +
+          map.startGold +
+
+          " · Base HP " +
+          map.startBaseHp +
+          "</span>";
+
+        button.addEventListener(
+          "click",
+          function () {
+            beginNewGame(map.id);
+          }
         );
 
-        ctx.strokeStyle =
-          "rgba(148,163,184,0.08)";
-
-        ctx.strokeRect(
-          col * tileSize + 0.5,
-          row * tileSize + 0.5,
-          tileSize - 1,
-          tileSize - 1
+        el.mapCards.appendChild(
+          button
         );
       }
-    }
-
-    drawMapDecor();
+    );
   }
 
-  function drawMapDecor() {
-    var map =
-      State.getMap();
+  function buildTowerQuickBar() {
+    el.towerQuickBar.innerHTML =
+      "";
 
-    State.get().mapDecor.forEach(
-      function (item) {
-        var x =
-          (
-            item.x +
-            0.5
-          ) *
-          tileSize;
+    Object.keys(Data.towers).forEach(
+      function (type) {
+        var tower =
+          Data.towers[type];
 
-        var y =
-          (
-            item.y +
-            0.5
-          ) *
-          tileSize;
+        var button =
+          document.createElement("button");
 
-        ctx.save();
-        ctx.globalAlpha =
-          item.alpha;
+        button.className =
+          "tower-quick";
 
-        if (map.decor === "rift") {
-          ctx.strokeStyle =
-            item.color;
+        button.type =
+          "button";
 
-          ctx.lineWidth =
-            1.5;
+        button.dataset.type =
+          tower.id;
 
-          ctx.beginPath();
+        button.style.setProperty(
+          "--tower-color",
+          tower.color
+        );
 
-          ctx.moveTo(
-            x -
-            item.size *
-            tileSize,
+        button.title =
+          tower.name +
+          ": " +
+          tower.description;
 
-            y -
-            item.size *
-            0.2 *
-            tileSize
-          );
+        button.innerHTML =
+          '<span class="tower-quick-symbol">' +
+          tower.symbol +
+          "</span>" +
 
-          ctx.lineTo(
-            x +
-            item.size *
-            0.35 *
-            tileSize,
+          '<span class="tower-quick-price">' +
+          tower.cost +
+          "G</span>";
 
-            y +
-            item.size *
-            0.25 *
-            tileSize
-          );
+        button.addEventListener(
+          "click",
+          function () {
+            Combat.toggleBuildType(
+              tower.id
+            );
+          }
+        );
 
-          ctx.lineTo(
-            x -
-            item.size *
-            0.1 *
-            tileSize,
+        el.towerQuickBar.appendChild(
+          button
+        );
+      }
+    );
+  }
 
-            y +
-            item.size *
-            0.7 *
-            tileSize
-          );
+  function bindEvents() {
+    window.addEventListener(
+      "resize",
+      Render.resize
+    );
 
-          ctx.stroke();
-        } else {
-          ctx.fillStyle =
-            item.color;
+    window.addEventListener(
+      "orientationchange",
+      function () {
+        window.setTimeout(
+          Render.resize,
+          120
+        );
+      }
+    );
 
-          ctx.beginPath();
+    document.addEventListener(
+      "visibilitychange",
+      function () {
+        var current =
+          State.get();
 
-          ctx.ellipse(
-            x,
-            y,
+        if (
+          document.hidden &&
+          current.started &&
+          current.status === "playing"
+        ) {
+          current.paused = true;
 
-            item.size *
-            tileSize,
-
-            item.size *
-            (
-              map.decor === "swamp"
-                ? 0.52
-                : 0.72
-            ) *
-            tileSize,
-
-            item.rotation,
-
-            0,
-            Math.PI * 2
-          );
-
-          ctx.fill();
+          State.save();
+          updateAll();
         }
+      }
+    );
 
-        ctx.restore();
+    el.canvas.addEventListener(
+      "pointerdown",
+      onCanvasPointerDown
+    );
+
+    el.waveOverlay.addEventListener(
+      "click",
+      Combat.startWave
+    );
+
+    el.startWave.addEventListener(
+      "click",
+      Combat.startWave
+    );
+
+    el.heroSkill.addEventListener(
+      "click",
+      Combat.useHeroSkill
+    );
+
+    el.cancelBuild.addEventListener(
+      "click",
+      Combat.cancelSelection
+    );
+
+    el.speed.addEventListener(
+      "click",
+      Combat.toggleSpeed
+    );
+
+    el.pause.addEventListener(
+      "click",
+      Combat.togglePause
+    );
+
+    el.info.addEventListener(
+      "click",
+      function () {
+        if (State.get().sheetOpen) {
+          closeBottomSheet();
+        } else {
+          openBottomSheet(
+            State.get().sheetTab ||
+            "wave"
+          );
+        }
+      }
+    );
+
+    el.sheetBackdrop.addEventListener(
+      "click",
+      function () {
+        closeBottomSheet();
+      }
+    );
+
+    el.sheetTabs.forEach(
+      function (tab) {
+        tab.addEventListener(
+          "click",
+          function () {
+            State.get().sheetTab =
+              tab.dataset.tab;
+
+            renderSheet();
+          }
+        );
       }
     );
   }
 
-  function drawPath() {
-    var map =
-      State.getMap();
+  function beginNewGame(mapId) {
+    State.newGame(mapId);
 
-    var points =
-      State.getPathPoints();
+    closeBottomSheet(false);
+    closeAllModals();
+    hideStartScreen();
 
-    var cells =
-      State.getPathCells();
+    Render.resize();
+    updateAll();
 
-    var start =
-      cells[0];
+    showToast(
+      State.getMap().name +
+      " 시작"
+    );
+  }
 
-    var end =
-      cells[
-        cells.length - 1
+  function returnToMapSelect() {
+    State.returnToMenu();
+
+    closeBottomSheet(false);
+    closeAllModals();
+    showStartScreen();
+
+    Render.resize();
+    updateAll();
+  }
+
+  function showStartScreen() {
+    el.startScreen.classList.remove(
+      "is-hidden"
+    );
+  }
+
+  function hideStartScreen() {
+    el.startScreen.classList.add(
+      "is-hidden"
+    );
+  }
+
+  function onCanvasPointerDown(event) {
+    var current =
+      State.get();
+
+    var cell;
+    var tower;
+
+    event.preventDefault();
+
+    if (
+      !current.started ||
+      current.sheetOpen ||
+      State.isBlockingModal()
+    ) {
+      return;
+    }
+
+    cell = Render.screenToCell(
+      event.clientX,
+      event.clientY
+    );
+
+    if (!cell) {
+      Combat.cancelSelection();
+      return;
+    }
+
+    tower = State.getTowerAt(
+      cell.col,
+      cell.row
+    );
+
+    if (tower) {
+      Combat.selectTower(
+        tower.id
+      );
+
+      return;
+    }
+
+    if (current.selectedBuildType) {
+      Combat.placeTower(
+        cell.col,
+        cell.row
+      );
+
+      return;
+    }
+
+    current.selectedTowerId =
+      null;
+
+    updateAll();
+  }
+
+  function openBottomSheet(tabName) {
+    var current =
+      State.get();
+
+    if (
+      !current.started ||
+      State.isBlockingModal()
+    ) {
+      return;
+    }
+
+    current.sheetTab =
+      tabName ||
+      "wave";
+
+    current.sheetOpen =
+      true;
+
+    if (
+      !current.paused &&
+      current.status === "playing"
+    ) {
+      current.paused = true;
+      sheetAutoPaused = true;
+    } else {
+      sheetAutoPaused = false;
+    }
+
+    el.bottomSheet.classList.add(
+      "is-open"
+    );
+
+    el.sheetBackdrop.classList.add(
+      "is-visible"
+    );
+
+    renderSheet();
+    updateAll();
+  }
+
+  function closeBottomSheet(restorePause) {
+    var current =
+      State.get();
+
+    var shouldRestore =
+      restorePause !== false;
+
+    current.sheetOpen =
+      false;
+
+    el.bottomSheet.classList.remove(
+      "is-open"
+    );
+
+    el.sheetBackdrop.classList.remove(
+      "is-visible"
+    );
+
+    if (
+      shouldRestore &&
+      sheetAutoPaused &&
+      current.status === "playing"
+    ) {
+      current.paused = false;
+    }
+
+    sheetAutoPaused =
+      false;
+
+    updateAll();
+  }
+
+  function renderSheet() {
+    var tabName =
+      State.get().sheetTab;
+
+    el.sheetTabs.forEach(
+      function (tab) {
+        tab.classList.toggle(
+          "is-active",
+          tab.dataset.tab === tabName
+        );
+      }
+    );
+
+    if (tabName === "hero") {
+      renderHeroSheet();
+    } else if (
+      tabName === "relic"
+    ) {
+      renderRelicSheet();
+    } else if (
+      tabName === "settings"
+    ) {
+      renderSettingsSheet();
+    } else {
+      renderWaveSheet();
+    }
+  }
+
+  function renderWaveSheet() {
+    var current =
+      State.get();
+
+    var wave =
+      Data.waves[
+        current.currentWave - 1
       ];
 
-    ctx.lineCap =
-      "round";
-
-    ctx.lineJoin =
-      "round";
-
-    drawPolyline(
-      points,
-      map.pathOuter,
-      tileSize * 0.68
-    );
-
-    drawPolyline(
-      points,
-      map.pathInner,
-      tileSize * 0.48
-    );
-
-    if (map.decor === "rift") {
-      drawRiftDetails(points);
-    } else if (
-      map.decor === "swamp"
-    ) {
-      drawSwampDetails(points);
-    }
-
-    drawPortal(
-      start.x,
-      start.y,
-      "#22c55e",
-      false
-    );
-
-    drawPortal(
-      end.x,
-      end.y,
-      "#ef4444",
-      true
-    );
-  }
-
-  function drawPolyline(
-    points,
-    color,
-    width
-  ) {
-    ctx.beginPath();
-
-    points.forEach(
-      function (point, index) {
-        if (index === 0) {
-          ctx.moveTo(
-            point.x * tileSize,
-            point.y * tileSize
-          );
-        } else {
-          ctx.lineTo(
-            point.x * tileSize,
-            point.y * tileSize
-          );
-        }
-      }
-    );
-
-    ctx.strokeStyle =
-      color;
-
-    ctx.lineWidth =
-      width;
-
-    ctx.stroke();
-  }
-
-  function drawRiftDetails(points) {
-    ctx.save();
-
-    ctx.strokeStyle =
-      "rgba(216,180,254,0.36)";
-
-    ctx.lineWidth =
-      1.4;
-
-    points.forEach(
-      function (point, index) {
-        var x;
-        var y;
-
-        if (index % 2) {
-          return;
-        }
-
-        x =
-          point.x *
-          tileSize;
-
-        y =
-          point.y *
-          tileSize;
-
-        ctx.beginPath();
-
-        ctx.moveTo(
-          x -
-          tileSize *
-          0.18,
-
-          y -
-          tileSize *
-          0.1
-        );
-
-        ctx.lineTo(
-          x +
-          tileSize *
-          0.16,
-
-          y +
-          tileSize *
-          0.12
-        );
-
-        ctx.stroke();
-      }
-    );
-
-    ctx.restore();
-  }
-
-  function drawSwampDetails(points) {
-    var time =
-      performance.now() /
-      600;
-
-    ctx.save();
-
-    ctx.fillStyle =
-      "rgba(190,242,100,0.24)";
-
-    points.forEach(
-      function (point, index) {
-        var radius;
-
-        if (index % 2) {
-          return;
-        }
-
-        radius =
-          tileSize *
-          (
-            0.04 +
-            Math.abs(
-              Math.sin(
-                time +
-                index
-              )
-            ) *
-            0.025
-          );
-
-        ctx.beginPath();
-
-        ctx.arc(
-          (
-            point.x +
-            0.16
-          ) *
-          tileSize,
-
-          (
-            point.y -
-            0.1
-          ) *
-          tileSize,
-
-          radius,
-
-          0,
-          Math.PI * 2
-        );
-
-        ctx.fill();
-      }
-    );
-
-    ctx.restore();
-  }
-
-  function drawPortal(
-    col,
-    row,
-    color,
-    isBase
-  ) {
-    var x =
-      (
-        col +
-        0.5
-      ) *
-      tileSize;
-
-    var y =
-      (
-        row +
-        0.5
-      ) *
-      tileSize;
-
-    var pulse =
-      1 +
-      Math.sin(
-        performance.now() /
-        240
-      ) *
-      0.08;
-
-    ctx.save();
-
-    ctx.shadowColor =
-      color;
-
-    ctx.shadowBlur =
-      14;
-
-    ctx.strokeStyle =
-      color;
-
-    ctx.lineWidth =
-      3;
-
-    ctx.beginPath();
-
-    ctx.arc(
-      x,
-      y,
-
-      tileSize *
-      0.25 *
-      pulse,
-
-      0,
-      Math.PI * 2
-    );
-
-    ctx.stroke();
-
-    if (isBase) {
-      ctx.fillStyle =
-        color;
-
-      crystalPath(
-        x,
-        y,
-        tileSize * 0.22,
-        tileSize * 0.38
-      );
-
-      ctx.fill();
-    } else {
-      ctx.fillStyle =
-        hexToRgba(
-          color,
-          0.28
-        );
-
-      ctx.beginPath();
-
-      ctx.arc(
-        x,
-        y,
-        tileSize * 0.18,
-        0,
-        Math.PI * 2
-      );
-
-      ctx.fill();
-    }
-
-    ctx.restore();
-  }
-
-  function drawBlockedTiles() {
-    (
-      State.getMap().blocked ||
-      []
-    ).forEach(function (point) {
-      var x =
-        point.x *
-        tileSize;
-
-      var y =
-        point.y *
-        tileSize;
-
-      ctx.fillStyle =
-        "rgba(15,23,42,0.72)";
-
-      roundedRectPath(
-        x +
-        tileSize *
-        0.16,
-
-        y +
-        tileSize *
-        0.16,
-
-        tileSize *
-        0.68,
-
-        tileSize *
-        0.68,
-
-        8
-      );
-
-      ctx.fill();
-
-      ctx.strokeStyle =
-        "rgba(148,163,184,0.24)";
-
-      ctx.stroke();
-
-      ctx.fillStyle =
-        "rgba(148,163,184,0.22)";
-
-      ctx.beginPath();
-
-      ctx.moveTo(
-        x +
-        tileSize *
-        0.25,
-
-        y +
-        tileSize *
-        0.68
-      );
-
-      ctx.lineTo(
-        x +
-        tileSize *
-        0.46,
-
-        y +
-        tileSize *
-        0.25
-      );
-
-      ctx.lineTo(
-        x +
-        tileSize *
-        0.75,
-
-        y +
-        tileSize *
-        0.67
-      );
-
-      ctx.closePath();
-      ctx.fill();
-    });
-  }
-
-  function drawBuildHighlights() {
-    var current =
-      State.get();
-
-    var selected =
-      State.getSelectedTower();
-
-    var pathSet;
-    var blockedSet;
-    var row;
-    var col;
-
-    if (selected) {
-      drawRangeCircle(
-        selected.col + 0.5,
-        selected.row + 0.5,
-
-        Combat.getTowerStats(
-          selected
-        ).range,
-
-        Data.towers[
-          selected.type
-        ].color
-      );
-
-      return;
-    }
+    var groups;
+    var tags;
 
     if (
-      !current.selectedBuildType ||
-      current.status !== "playing"
+      !wave ||
+      current.status === "clear"
     ) {
+      el.sheetContent.innerHTML =
+        '<div class="info-card">' +
+        "<h3>웨이브</h3>" +
+        '<div class="info-list">' +
+        "모든 웨이브를 완료했습니다." +
+        "</div></div>";
+
       return;
     }
 
-    pathSet =
-      State.getPathSet();
+    groups = wave.groups.map(
+      function (group) {
+        var monster =
+          Data.monsters[
+            group.type
+          ];
 
-    blockedSet =
-      State.getBlockedSet();
+        var labels =
+          Combat.getMonsterTraitLabels(
+            monster
+          );
 
-    ctx.save();
-    ctx.globalAlpha =
-      0.17;
+        return (
+          "<div><b>" +
+          monster.name +
+          "</b> × " +
+          group.count +
 
-    for (
-      row = 0;
-      row < Data.board.rows;
-      row += 1
-    ) {
-      for (
-        col = 0;
-        col < Data.board.cols;
-        col += 1
-      ) {
-        if (
-          pathSet.has(
-            col + "," + row
-          ) ||
-          blockedSet.has(
-            col + "," + row
-          ) ||
-          State.getTowerAt(
-            col,
-            row
-          ) ||
-          State.isHeroTile(
-            col,
-            row
-          )
-        ) {
-          continue;
-        }
+          (
+            labels.length
+              ? " · " +
+                labels.join(", ")
+              : ""
+          ) +
 
-        ctx.fillStyle =
-          Data.towers[
-            current.selectedBuildType
-          ].color;
-
-        roundedRectPath(
-          col * tileSize +
-          tileSize * 0.3,
-
-          row * tileSize +
-          tileSize * 0.3,
-
-          tileSize * 0.4,
-          tileSize * 0.4,
-
-          5
+          "</div>"
         );
-
-        ctx.fill();
       }
-    }
+    ).join("");
 
-    ctx.restore();
+    tags =
+      Combat.collectWaveTraits(
+        wave
+      ).map(
+        function (traitId) {
+          var trait =
+            Data.monsterTraits[
+              traitId
+            ];
+
+          return (
+            '<span class="tag">' +
+            (
+              trait
+                ? trait.symbol
+                : traitId
+            ) +
+            "</span>"
+          );
+        }
+      ).join("");
+
+    el.sheetContent.innerHTML =
+      '<div class="info-card">' +
+      "<h3>다음 웨이브</h3>" +
+
+      '<div class="info-grid">' +
+
+      "<span>맵</span>" +
+      "<strong>" +
+      State.getMap().name +
+      "</strong>" +
+
+      "<span>Wave</span>" +
+      "<strong>" +
+      wave.id +
+      " / " +
+      Data.waves.length +
+      "</strong>" +
+
+      "<span>이름</span>" +
+      "<strong>" +
+      wave.name +
+      "</strong>" +
+
+      "<span>보상</span>" +
+      "<strong>" +
+      wave.reward +
+      "G</strong>" +
+
+      "</div></div>" +
+
+      '<div class="info-card">' +
+      "<h3>등장 몬스터</h3>" +
+
+      '<div class="info-list">' +
+      groups +
+      "</div>" +
+
+      '<div class="tag-row">' +
+      (
+        tags ||
+        '<span class="tag">기본</span>'
+      ) +
+      "</div></div>" +
+
+      '<div class="info-card">' +
+      "<h3>추천 대응</h3>" +
+
+      '<div class="info-list">' +
+      wave.recommendation +
+      "</div></div>";
   }
 
-  function drawRangeCircle(
-    x,
-    y,
-    range,
-    color
-  ) {
-    ctx.beginPath();
-
-    ctx.arc(
-      x * tileSize,
-      y * tileSize,
-      range * tileSize,
-      0,
-      Math.PI * 2
-    );
-
-    ctx.fillStyle =
-      hexToRgba(
-        color,
-        0.07
-      );
-
-    ctx.strokeStyle =
-      hexToRgba(
-        color,
-        0.4
-      );
-
-    ctx.lineWidth =
-      2;
-
-    ctx.fill();
-    ctx.stroke();
-  }
-
-  function drawTowers() {
+  function renderHeroSheet() {
     var current =
       State.get();
 
-    current.towers.forEach(
-      function (tower) {
-        var table =
-          Data.towers[
-            tower.type
-          ];
+    var stats =
+      Combat.getHeroStats();
 
-        var x =
-          (
-            tower.col +
-            0.5
-          ) *
-          tileSize;
+    var skill =
+      Combat.getHeroSkillStats();
 
-        var y =
-          (
-            tower.row +
-            0.5
-          ) *
-          tileSize;
+    var nextExp =
+      Data.formulas.heroNextExp(
+        current.hero.level
+      );
 
-        var selected =
-          tower.id ===
-          current.selectedTowerId;
+    var expPercent =
+      clamp(
+        (
+          current.hero.exp /
+          nextExp
+        ) *
+        100,
 
-        ctx.save();
+        0,
+        100
+      );
 
-        if (selected) {
-          ctx.shadowColor =
-            table.color;
+    var passives =
+      Data.heroPassives.map(
+        function (passive) {
+          var unlocked =
+            current.hero.level >=
+            passive.level;
 
-          ctx.shadowBlur =
-            18;
-        }
-
-        drawTowerSprite(
-          tower,
-          x,
-          y
-        );
-
-        if (selected) {
-          ctx.strokeStyle =
-            "rgba(255,255,255,0.9)";
-
-          ctx.lineWidth =
-            2;
-
-          ctx.beginPath();
-
-          ctx.arc(
-            x,
-            y,
-            tileSize * 0.39,
-            0,
-            Math.PI * 2
+          return (
+            "<div><b>" +
+            (
+              unlocked
+                ? "해금"
+                : "Lv." +
+                  passive.level
+            ) +
+            "</b> " +
+            passive.name +
+            " · " +
+            passive.description +
+            "</div>"
           );
-
-          ctx.stroke();
         }
+      ).join("");
 
-        ctx.fillStyle =
-          "#e5e7eb";
+    el.sheetContent.innerHTML =
+      '<div class="info-card">' +
 
-        ctx.font =
-          "800 " +
-          Math.max(
-            8,
-            tileSize * 0.16
-          ) +
-          "px system-ui";
+      "<h3>" +
+      Data.hero.name +
+      " · Lv." +
+      current.hero.level +
+      "</h3>" +
 
-        ctx.textAlign =
-          "center";
+      '<div class="info-grid">' +
 
-        ctx.textBaseline =
-          "middle";
+      "<span>경험치</span>" +
+      "<strong>" +
+      current.hero.exp +
+      " / " +
+      nextExp +
+      "</strong>" +
 
-        ctx.fillText(
-          "Lv." + tower.level,
-          x,
-          y + tileSize * 0.32
-        );
+      "<span>공격력</span>" +
+      "<strong>" +
+      stats.damage +
+      "</strong>" +
 
-        if (tower.trait) {
-          ctx.fillStyle =
-            "#facc15";
+      "<span>사거리</span>" +
+      "<strong>" +
+      stats.range +
+      "</strong>" +
 
-          ctx.beginPath();
+      "<span>공격 간격</span>" +
+      "<strong>" +
+      stats.attackInterval +
+      "초</strong>" +
 
-          ctx.arc(
-            x + tileSize * 0.23,
-            y - tileSize * 0.27,
-            tileSize * 0.075,
-            0,
-            Math.PI * 2
-          );
+      "<span>스킬 피해</span>" +
+      "<strong>" +
+      skill.damage +
+      "</strong>" +
 
-          ctx.fill();
-        }
+      "<span>스킬 쿨타임</span>" +
+      "<strong>" +
+      skill.cooldown +
+      "초</strong>" +
 
-        ctx.restore();
-      }
-    );
+      "</div>" +
+
+      '<div class="exp-bar">' +
+      '<span style="width:' +
+      expPercent +
+      '%"></span>' +
+      "</div></div>" +
+
+      '<div class="info-card">' +
+      "<h3>패시브</h3>" +
+
+      '<div class="info-list">' +
+      passives +
+      "</div></div>";
   }
 
-  function drawTowerSprite(
+  function renderRelicSheet() {
+    var counts =
+      Combat.getRelicCounts();
+
+    var rows =
+      Object.keys(counts).length
+        ? Object.keys(counts).map(
+            function (id) {
+              var relic =
+                Data.relics.find(
+                  function (item) {
+                    return item.id === id;
+                  }
+                );
+
+              var count =
+                counts[id];
+
+              return relic
+                ? (
+                    "<div><b>" +
+                    relic.name +
+
+                    (
+                      count > 1
+                        ? " ×" + count
+                        : ""
+                    ) +
+
+                    "</b><br>" +
+                    relic.description +
+                    "</div>"
+                  )
+                : "";
+            }
+          ).join("")
+        : "보스 처치 후 유물을 획득합니다.";
+
+    el.sheetContent.innerHTML =
+      '<div class="info-card">' +
+
+      "<h3>보유 유물 " +
+      State.get().relics.length +
+      "개</h3>" +
+
+      '<div class="info-list">' +
+      rows +
+      "</div></div>";
+  }
+
+  function renderSettingsSheet() {
+    var current =
+      State.get();
+
+    el.sheetContent.innerHTML =
+      '<div class="info-card">' +
+      "<h3>게임 설정</h3>" +
+
+      '<div class="info-grid">' +
+
+      "<span>현재 맵</span>" +
+      "<strong>" +
+      State.getMap().name +
+      "</strong>" +
+
+      "<span>배속</span>" +
+      "<strong>" +
+      current.speed +
+      "x</strong>" +
+
+      "<span>자동 웨이브</span>" +
+      "<strong>" +
+      (
+        current.autoWave
+          ? "ON"
+          : "OFF"
+      ) +
+      "</strong>" +
+
+      "<span>버전</span>" +
+      "<strong>" +
+      Data.version +
+      "</strong>" +
+
+      "</div></div>" +
+
+      '<div class="setting-actions">' +
+
+      '<button id="sheetAutoWaveBtn" type="button">' +
+      "자동 웨이브 " +
+      (
+        current.autoWave
+          ? "끄기"
+          : "켜기"
+      ) +
+      "</button>" +
+
+      '<button id="sheetSaveBtn" type="button">' +
+      "현재 진행 저장" +
+      "</button>" +
+
+      '<button id="sheetNewGameBtn" class="danger" type="button">' +
+      "새 게임 / 맵 다시 선택" +
+      "</button>" +
+
+      "</div>";
+
+    document
+      .getElementById(
+        "sheetAutoWaveBtn"
+      )
+      .addEventListener(
+        "click",
+        function () {
+          Combat.toggleAutoWave();
+          renderSettingsSheet();
+        }
+      );
+
+    document
+      .getElementById(
+        "sheetSaveBtn"
+      )
+      .addEventListener(
+        "click",
+        function () {
+          State.save();
+
+          showToast(
+            "현재 진행을 저장했습니다."
+          );
+        }
+      );
+
+    document
+      .getElementById(
+        "sheetNewGameBtn"
+      )
+      .addEventListener(
+        "click",
+        function () {
+          returnToMapSelect();
+        }
+      );
+  }
+
+  function updateAll() {
+    updateHud();
+    updateTowerQuickBar();
+    updateWaveOverlay();
+    updateActionMenu();
+
+    if (State.get().sheetOpen) {
+      renderSheet();
+    }
+  }
+
+  function updateRuntime() {
+    updateHud();
+    updateWaveOverlay();
+  }
+
+  function updateHud() {
+    var current =
+      State.get();
+
+    var skillReady =
+      current.hero.skillCooldown <= 0;
+
+    var waveNumber =
+      Math.min(
+        current.currentWave,
+        Data.waves.length
+      );
+
+    el.mapName.textContent =
+      State.getMap().name;
+
+    el.gold.textContent =
+      Math.floor(
+        current.gold
+      );
+
+    el.baseHp.textContent =
+      Math.max(
+        0,
+        current.baseHp
+      );
+
+    el.wave.textContent =
+      waveNumber +
+      "/" +
+      Data.waves.length;
+
+    el.speed.textContent =
+      current.speed + "x";
+
+    el.pause.textContent =
+      current.paused
+        ? "재개"
+        : "정지";
+
+    el.heroSkill.textContent =
+      skillReady
+        ? "성광"
+        : Math.ceil(
+            current.hero.skillCooldown
+          ) +
+          "초";
+
+    el.heroSkill.disabled =
+      !current.started ||
+      current.status !== "playing" ||
+      current.paused ||
+      State.isBlockingModal() ||
+      !skillReady;
+
+    el.startWave.disabled =
+      !Combat.canStartWave();
+
+    if (!current.started) {
+      el.status.textContent =
+        "맵 선택";
+    } else if (
+      State.isBlockingModal()
+    ) {
+      el.status.textContent =
+        "선택";
+    } else if (
+      current.status === "gameOver"
+    ) {
+      el.status.textContent =
+        "패배";
+    } else if (
+      current.status === "clear"
+    ) {
+      el.status.textContent =
+        "클리어";
+    } else if (
+      current.paused
+    ) {
+      el.status.textContent =
+        "정지";
+    } else if (
+      current.bossWarningTimer > 0
+    ) {
+      el.status.textContent =
+        "보스";
+    } else if (
+      current.waveRunning
+    ) {
+      el.status.textContent =
+        "전투";
+    } else if (
+      current.autoWave &&
+      current.autoStartTimer > 0
+    ) {
+      el.status.textContent =
+        "자동";
+    } else {
+      el.status.textContent =
+        "대기";
+    }
+  }
+
+  function updateTowerQuickBar() {
+    var current =
+      State.get();
+
+    document
+      .querySelectorAll(
+        ".tower-quick[data-type]"
+      )
+      .forEach(
+        function (button) {
+          button.classList.toggle(
+            "is-active",
+
+            current.selectedBuildType ===
+              button.dataset.type &&
+            !current.selectedTowerId
+          );
+
+          button.disabled =
+            !current.started ||
+            current.status !== "playing";
+        }
+      );
+
+    el.cancelBuild.disabled =
+      !current.selectedBuildType &&
+      !current.selectedTowerId;
+  }
+
+  function updateWaveOverlay() {
+    var current =
+      State.get();
+
+    var wave =
+      Data.waves[
+        current.currentWave - 1
+      ];
+
+    var visible =
+      !!wave &&
+      Combat.canStartWave() &&
+      !current.sheetOpen;
+
+    el.waveOverlay.hidden =
+      !visible;
+
+    if (!wave) {
+      return;
+    }
+
+    el.waveOverlayTitle.textContent =
+      "Wave " + wave.id;
+
+    el.waveOverlayName.textContent =
+      wave.name;
+
+    el.waveOverlayHint.textContent =
+      current.autoWave
+        ? "자동 시작 대기"
+        : "눌러서 시작";
+  }
+
+  function updateActionMenu() {
+    var current =
+      State.get();
+
+    var tower =
+      State.getSelectedTower();
+
+    var table;
+    var stats;
+    var upgradeCost;
+    var sellValue;
+    var trait;
+    var traitText;
+    var metrics;
+
+    var menuWidth = 218;
+
+    var towerScreenX;
+    var towerScreenY;
+    var left;
+    var aboveY;
+    var belowY;
+    var top;
+
+    var upgradeButton;
+    var sellButton;
+
+    if (
+      !tower ||
+      current.sheetOpen ||
+      State.isBlockingModal()
+    ) {
+      el.actionMenu.classList.remove(
+        "is-visible"
+      );
+
+      el.actionMenu.innerHTML =
+        "";
+
+      return;
+    }
+
+    table =
+      Data.towers[
+        tower.type
+      ];
+
+    stats =
+      Combat.getTowerStats(
+        tower
+      );
+
+    upgradeCost =
+      Data.formulas.towerUpgradeCost(
+        table,
+        tower.level
+      );
+
+    sellValue =
+      Data.formulas.towerSellValue(
+        table,
+        tower.level
+      );
+
+    trait =
+      Combat.getTraitById(
+        tower.trait
+      );
+
+    traitText =
+      trait
+        ? trait.name + " 적용 중"
+        : tower.level >=
+            table.traitUnlockLevel
+          ? "특성 선택 가능"
+          : "Lv." +
+            table.traitUnlockLevel +
+            " 특성 해금";
+
+    metrics =
+      Render.getMetrics();
+
+    towerScreenX =
+      metrics.boardOffsetX +
+      (
+        tower.col +
+        0.5
+      ) *
+      metrics.tileSize;
+
+    towerScreenY =
+      metrics.boardOffsetY +
+      (
+        tower.row +
+        0.5
+      ) *
+      metrics.tileSize;
+
+    left = clamp(
+      towerScreenX,
+      menuWidth / 2 + 5,
+
+      metrics.viewportWidth -
+      menuWidth / 2 -
+      5
+    );
+
+    aboveY =
+      towerScreenY -
+      126;
+
+    belowY =
+      towerScreenY +
+      metrics.tileSize *
+      0.55;
+
+    top =
+      aboveY > 5
+        ? aboveY
+        : clamp(
+            belowY,
+            5,
+            metrics.viewportHeight - 126
+          );
+
+    el.actionMenu.style.left =
+      left + "px";
+
+    el.actionMenu.style.top =
+      top + "px";
+
+    el.actionMenu.classList.add(
+      "is-visible"
+    );
+
+    el.actionMenu.innerHTML =
+      '<div class="action-title">' +
+
+      table.symbol +
+      " " +
+      table.name +
+
+      "<span>Lv." +
+      tower.level +
+      "/" +
+      table.maxLevel +
+      "</span></div>" +
+
+      '<div class="action-info">' +
+
+      "<span>공격력</span>" +
+      "<strong>" +
+      stats.damage +
+      "</strong>" +
+
+      "<span>사거리</span>" +
+      "<strong>" +
+      stats.range +
+      "</strong>" +
+
+      "<span>강화</span>" +
+      "<strong>" +
+      (
+        upgradeCost === null
+          ? "MAX"
+          : upgradeCost + "G"
+      ) +
+      "</strong>" +
+
+      "<span>판매</span>" +
+      "<strong>" +
+      sellValue +
+      "G</strong>" +
+
+      "</div>" +
+
+      '<div class="action-trait">' +
+      traitText +
+      "</div>" +
+
+      '<div class="action-buttons">' +
+
+      '<button id="quickUpgradeBtn" type="button" ' +
+      (
+        upgradeCost === null
+          ? "disabled"
+          : ""
+      ) +
+      ">강화</button>" +
+
+      '<button id="quickSellBtn" class="danger" type="button">' +
+      "판매" +
+      "</button>" +
+
+      "</div>";
+
+    upgradeButton =
+      document.getElementById(
+        "quickUpgradeBtn"
+      );
+
+    sellButton =
+      document.getElementById(
+        "quickSellBtn"
+      );
+
+    if (upgradeButton) {
+      upgradeButton.addEventListener(
+        "click",
+        Combat.upgradeSelectedTower
+      );
+    }
+
+    if (sellButton) {
+      sellButton.addEventListener(
+        "click",
+        Combat.sellSelectedTower
+      );
+    }
+  }
+
+  function openTraitModal(
     tower,
-    x,
-    y
+    options
   ) {
     var table =
       Data.towers[
         tower.type
       ];
 
-    var color =
-      table.color;
-
-    var size =
-      tileSize *
-      (
-        0.25 +
-        tower.level * 0.01
-      );
-
-    var index;
-
-    ctx.fillStyle =
-      "rgba(15,23,42,0.94)";
-
-    roundedRectPath(
-      x - size,
-      y - size * 0.42,
-      size * 2,
-      size * 1.32,
-      8
-    );
-
-    ctx.fill();
-
-    ctx.strokeStyle =
-      color;
-
-    ctx.lineWidth =
-      2;
-
-    ctx.stroke();
-
-    if (tower.type === "archer") {
-      ctx.strokeStyle =
-        color;
-
-      ctx.lineWidth =
-        3;
-
-      ctx.beginPath();
-
-      ctx.arc(
-        x,
-        y - size * 0.42,
-        size * 0.62,
-        -Math.PI * 0.7,
-        Math.PI * 0.7
-      );
-
-      ctx.stroke();
-
-      ctx.beginPath();
-
-      ctx.moveTo(
-        x - size * 0.08,
-        y - size * 0.95
-      );
-
-      ctx.lineTo(
-        x + size * 0.56,
-        y - size * 0.42
-      );
-
-      ctx.stroke();
-    } else if (
-      tower.type === "cannon"
-    ) {
-      ctx.save();
-
-      ctx.translate(
-        x,
-        y - size * 0.32
-      );
-
-      ctx.rotate(-0.32);
-
-      ctx.fillStyle =
-        color;
-
-      roundedRectPath(
-        0,
-        -size * 0.18,
-        size,
-        size * 0.36,
-        4
-      );
-
-      ctx.fill();
-      ctx.restore();
-
-      ctx.fillStyle =
-        "#334155";
-
-      ctx.beginPath();
-
-      ctx.arc(
-        x,
-        y - size * 0.2,
-        size * 0.42,
-        0,
-        Math.PI * 2
-      );
-
-      ctx.fill();
-
-      ctx.strokeStyle =
-        color;
-
-      ctx.stroke();
-    } else if (
-      tower.type === "ice"
-    ) {
-      ctx.fillStyle =
-        color;
-
-      crystalPath(
-        x,
-        y - size * 0.22,
-        size * 0.62,
-        size * 0.95
-      );
-
-      ctx.fill();
-
-      ctx.fillStyle =
-        "rgba(255,255,255,0.48)";
-
-      crystalPath(
-        x + size * 0.24,
-        y - size * 0.12,
-        size * 0.28,
-        size * 0.5
-      );
-
-      ctx.fill();
-    } else if (
-      tower.type === "lightning"
-    ) {
-      ctx.strokeStyle =
-        color;
-
-      ctx.lineWidth =
-        3;
-
-      ctx.beginPath();
-
-      ctx.moveTo(
-        x - size * 0.34,
-        y + size * 0.2
-      );
-
-      ctx.lineTo(
-        x + size * 0.12,
-        y - size * 0.2
-      );
-
-      ctx.lineTo(
-        x - size * 0.04,
-        y - size * 0.2
-      );
-
-      ctx.lineTo(
-        x + size * 0.38,
-        y - size * 0.84
-      );
-
-      ctx.stroke();
-
-      ctx.fillStyle =
-        hexToRgba(
-          color,
-          0.75
-        );
-
-      ctx.beginPath();
-
-      ctx.arc(
-        x,
-        y - size * 0.72,
-        size * 0.28,
-        0,
-        Math.PI * 2
-      );
-
-      ctx.fill();
-    } else if (
-      tower.type === "poison"
-    ) {
-      ctx.fillStyle =
-        "#1f2937";
-
-      ctx.beginPath();
-
-      ctx.ellipse(
-        x,
-        y - size * 0.12,
-        size * 0.65,
-        size * 0.42,
-        0,
-        0,
-        Math.PI * 2
-      );
-
-      ctx.fill();
-
-      ctx.strokeStyle =
-        color;
-
-      ctx.stroke();
-
-      ctx.fillStyle =
-        color;
-
-      for (
-        index = 0;
-        index < 3;
-        index += 1
-      ) {
-        ctx.beginPath();
-
-        ctx.arc(
-          x -
-          size * 0.32 +
-          index *
-          size * 0.32,
-
-          y -
-          size *
-          (
-            0.44 +
-            0.1 *
-            Math.sin(
-              performance.now() /
-              300 +
-              index
-            )
-          ),
-
-          size * 0.11,
-
-          0,
-          Math.PI * 2
-        );
-
-        ctx.fill();
-      }
-    }
-  }
-
-  function drawHero() {
-    var hero =
-      State.getHeroPosition();
-
-    var x =
-      hero.x *
-      tileSize;
-
-    var y =
-      hero.y *
-      tileSize;
-
-    var pulse =
-      1 +
-      Math.sin(
-        performance.now() /
-        260
-      ) *
-      0.04;
-
-    ctx.save();
-
-    ctx.beginPath();
-
-    ctx.arc(
-      x,
-      y,
-      tileSize * 0.35 * pulse,
-      0,
-      Math.PI * 2
-    );
-
-    ctx.fillStyle =
-      "rgba(250,204,21,0.14)";
-
-    ctx.fill();
-
-    ctx.strokeStyle =
-      "rgba(250,204,21,0.82)";
-
-    ctx.lineWidth =
-      2;
-
-    ctx.stroke();
-
-    ctx.fillStyle =
-      "#1e293b";
-
-    roundedRectPath(
-      x - tileSize * 0.14,
-      y - tileSize * 0.02,
-      tileSize * 0.28,
-      tileSize * 0.27,
-      6
-    );
-
-    ctx.fill();
-
-    ctx.fillStyle =
-      "#fbbf24";
-
-    ctx.beginPath();
-
-    ctx.arc(
-      x,
-      y - tileSize * 0.16,
-      tileSize * 0.15,
-      0,
-      Math.PI * 2
-    );
-
-    ctx.fill();
-
-    ctx.strokeStyle =
-      "#fde047";
-
-    ctx.lineWidth =
-      3;
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-      x + tileSize * 0.12,
-      y + tileSize * 0.02
-    );
-
-    ctx.lineTo(
-      x + tileSize * 0.34,
-      y - tileSize * 0.18
-    );
-
-    ctx.stroke();
-
-    ctx.restore();
-  }
-
-  function drawEnemies() {
-    State.get().enemies.forEach(
-      function (enemy) {
-        var x =
-          enemy.x *
-          tileSize;
-
-        var y =
-          enemy.y *
-          tileSize;
-
-        var radius =
-          enemy.radius *
-          tileSize;
-
-        var pulse;
-
-        ctx.save();
-
-        if (
-          enemy.boss ||
-          enemy.traits.indexOf("darkAura") >= 0
-        ) {
-          pulse =
-            1 +
-            Math.sin(
-              performance.now() /
-              180
-            ) *
-            0.08;
-
-          ctx.fillStyle =
-            hexToRgba(
-              enemy.aura,
-              enemy.boss
-                ? 0.18
-                : 0.1
+    el.traitModalTitle.textContent =
+      table.name +
+      " 특성 선택";
+
+    el.traitModalDesc.textContent =
+      "선택한 특성은 현재 게임에서 변경할 수 없습니다.";
+
+    el.traitOptions.innerHTML =
+      "";
+
+    options.forEach(
+      function (trait) {
+        var button =
+          document.createElement("button");
+
+        button.className =
+          "choice-btn";
+
+        button.type =
+          "button";
+
+        button.innerHTML =
+          "<strong>" +
+          trait.name +
+          "</strong>" +
+
+          "<span>" +
+          trait.summary +
+          "</span>" +
+
+          "<span>" +
+          trait.effectText +
+          "</span>";
+
+        button.addEventListener(
+          "click",
+          function () {
+            Combat.selectTowerTrait(
+              trait.id
             );
-
-          ctx.beginPath();
-
-          ctx.arc(
-            x,
-            y,
-
-            radius *
-            (
-              enemy.boss
-                ? 1.9
-                : 1.4
-            ) *
-            pulse,
-
-            0,
-            Math.PI * 2
-          );
-
-          ctx.fill();
-        }
-
-        drawMonsterSprite(
-          enemy,
-          x,
-          y,
-          radius
+          }
         );
 
-        drawHpBar(
-          x,
-
-          y -
-          radius -
-          tileSize * 0.17,
-
-          radius * 2.15,
-          tileSize * 0.08,
-
-          enemy.hp /
-          enemy.maxHp,
-
-          enemy.boss
-            ? "#f97316"
-            : "#22c55e"
+        el.traitOptions.appendChild(
+          button
         );
-
-        if (
-          enemy.maxShield > 0 &&
-          enemy.shield > 0
-        ) {
-          drawHpBar(
-            x,
-
-            y -
-            radius -
-            tileSize * 0.28,
-
-            radius * 2.15,
-            tileSize * 0.055,
-
-            enemy.shield /
-            enemy.maxShield,
-
-            "#38bdf8"
-          );
-        }
-
-        ctx.restore();
       }
     );
-  }
 
-  function drawMonsterSprite(
-    enemy,
-    x,
-    y,
-    radius
-  ) {
-    var time =
-      performance.now() /
-      350 +
-      enemy.animSeed;
-
-    var index;
-
-    y +=
-      Math.sin(time) *
-      tileSize *
-      0.025;
-
-    ctx.fillStyle =
-      enemy.color;
-
-    ctx.strokeStyle =
-      getEnemyStrokeColor(
-        enemy
-      );
-
-    ctx.lineWidth =
-      enemy.boss
-        ? 3
-        : 2;
-
-    switch (enemy.type) {
-      case "slime":
-        ctx.beginPath();
-
-        ctx.ellipse(
-          x,
-
-          y +
-          radius * 0.08,
-
-          radius *
-          (
-            1.05 +
-            Math.sin(time) *
-            0.06
-          ),
-
-          radius * 0.78,
-
-          0,
-          Math.PI,
-          0
-        );
-
-        ctx.lineTo(
-          x + radius * 0.9,
-          y + radius * 0.38
-        );
-
-        ctx.quadraticCurveTo(
-          x,
-          y + radius * 0.7,
-          x - radius * 0.9,
-          y + radius * 0.38
-        );
-
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-        drawEye(
-          x - radius * 0.28,
-          y + radius * 0.05,
-          radius * 0.08
-        );
-
-        drawEye(
-          x + radius * 0.28,
-          y + radius * 0.05,
-          radius * 0.08
-        );
-        break;
-
-      case "bat":
-        drawWing(
-          x - radius * 0.22,
-          y,
-          -1,
-          radius,
-          enemy.color
-        );
-
-        drawWing(
-          x + radius * 0.22,
-          y,
-          1,
-          radius,
-          enemy.color
-        );
-
-        ctx.beginPath();
-
-        ctx.ellipse(
-          x,
-          y,
-          radius * 0.52,
-          radius * 0.75,
-          0,
-          0,
-          Math.PI * 2
-        );
-
-        ctx.fill();
-        ctx.stroke();
-
-        drawEye(
-          x - radius * 0.15,
-          y - radius * 0.08,
-          radius * 0.06
-        );
-
-        drawEye(
-          x + radius * 0.15,
-          y - radius * 0.08,
-          radius * 0.06
-        );
-        break;
-
-      case "goblin":
-        drawEar(
-          x - radius * 0.5,
-          y - radius * 0.06,
-          -1,
-          radius
-        );
-
-        drawEar(
-          x + radius * 0.5,
-          y - radius * 0.06,
-          1,
-          radius
-        );
-
-        ctx.beginPath();
-
-        ctx.arc(
-          x,
-          y,
-          radius * 0.78,
-          0,
-          Math.PI * 2
-        );
-
-        ctx.fill();
-        ctx.stroke();
-
-        drawEye(
-          x - radius * 0.22,
-          y - radius * 0.08,
-          radius * 0.06
-        );
-
-        drawEye(
-          x + radius * 0.22,
-          y - radius * 0.08,
-          radius * 0.06
-        );
-        break;
-
-      case "wolf":
-        ctx.beginPath();
-
-        ctx.moveTo(
-          x - radius * 0.86,
-          y + radius * 0.2
-        );
-
-        ctx.lineTo(
-          x - radius * 0.2,
-          y - radius * 0.6
-        );
-
-        ctx.lineTo(
-          x + radius * 0.75,
-          y - radius * 0.25
-        );
-
-        ctx.lineTo(
-          x + radius * 0.55,
-          y + radius * 0.5
-        );
-
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.beginPath();
-
-        ctx.moveTo(
-          x - radius * 0.12,
-          y - radius * 0.58
-        );
-
-        ctx.lineTo(
-          x + radius * 0.04,
-          y - radius * 0.98
-        );
-
-        ctx.lineTo(
-          x + radius * 0.22,
-          y - radius * 0.52
-        );
-
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-        drawEye(
-          x + radius * 0.34,
-          y - radius * 0.22,
-          radius * 0.055
-        );
-        break;
-
-      case "plagueCrawler":
-        ctx.beginPath();
-
-        ctx.ellipse(
-          x,
-          y,
-          radius,
-          radius * 0.62,
-          0,
-          0,
-          Math.PI * 2
-        );
-
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.strokeStyle =
-          "rgba(190,242,100,0.8)";
-
-        for (
-          index = -2;
-          index <= 2;
-          index += 1
-        ) {
-          ctx.beginPath();
-
-          ctx.moveTo(
-            x + index * radius * 0.28,
-            y + radius * 0.28
-          );
-
-          ctx.lineTo(
-            x + index * radius * 0.38,
-            y + radius * 0.72
-          );
-
-          ctx.stroke();
-        }
-        break;
-
-      case "golem":
-      case "bossGolem":
-        drawBlock(
-          x,
-          y - radius * 0.3,
-          radius * 1.1,
-          radius * 0.85,
-          enemy.color
-        );
-
-        drawBlock(
-          x - radius * 0.55,
-          y + radius * 0.35,
-          radius * 0.55,
-          radius * 0.48,
-          enemy.color
-        );
-
-        drawBlock(
-          x + radius * 0.55,
-          y + radius * 0.35,
-          radius * 0.55,
-          radius * 0.48,
-          enemy.color
-        );
-
-        drawEye(
-          x - radius * 0.2,
-          y - radius * 0.35,
-          radius * 0.055
-        );
-
-        drawEye(
-          x + radius * 0.2,
-          y - radius * 0.35,
-          radius * 0.055
-        );
-        break;
-
-      case "darkPriest":
-        ctx.beginPath();
-
-        ctx.moveTo(
-          x,
-          y - radius * 0.95
-        );
-
-        ctx.quadraticCurveTo(
-          x + radius * 0.85,
-          y - radius * 0.3,
-          x + radius * 0.55,
-          y + radius * 0.75
-        );
-
-        ctx.lineTo(
-          x - radius * 0.55,
-          y + radius * 0.75
-        );
-
-        ctx.quadraticCurveTo(
-          x - radius * 0.85,
-          y - radius * 0.3,
-          x,
-          y - radius * 0.95
-        );
-
-        ctx.fill();
-        ctx.stroke();
-
-        drawEye(
-          x - radius * 0.15,
-          y - radius * 0.22,
-          radius * 0.06,
-          "#fef08a"
-        );
-
-        drawEye(
-          x + radius * 0.15,
-          y - radius * 0.22,
-          radius * 0.06,
-          "#fef08a"
-        );
-        break;
-
-      case "shieldImp":
-        ctx.beginPath();
-
-        ctx.arc(
-          x,
-          y,
-          radius * 0.75,
-          0,
-          Math.PI * 2
-        );
-
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.fillStyle =
-          "rgba(125,211,252,0.65)";
-
-        shieldPath(
-          x,
-          y + radius * 0.05,
-          radius * 0.55
-        );
-
-        ctx.fill();
-        ctx.stroke();
-        break;
-
-      case "shadowKnight":
-        shieldPath(
-          x,
-          y,
-          radius * 0.88
-        );
-
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.fillStyle =
-          "#111827";
-
-        ctx.fillRect(
-          x - radius * 0.4,
-          y - radius * 0.35,
-          radius * 0.8,
-          radius * 0.22
-        );
-
-        ctx.fillStyle =
-          "#f8fafc";
-
-        ctx.fillRect(
-          x - radius * 0.28,
-          y - radius * 0.28,
-          radius * 0.18,
-          radius * 0.05
-        );
-
-        ctx.fillRect(
-          x + radius * 0.1,
-          y - radius * 0.28,
-          radius * 0.18,
-          radius * 0.05
-        );
-        break;
-
-      case "abyssLord":
-        ctx.fillStyle =
-          "#020617";
-
-        ctx.beginPath();
-
-        ctx.moveTo(
-          x,
-          y - radius
-        );
-
-        ctx.lineTo(
-          x + radius * 0.85,
-          y + radius * 0.75
-        );
-
-        ctx.lineTo(
-          x - radius * 0.85,
-          y + radius * 0.75
-        );
-
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.strokeStyle =
-          "#f59e0b";
-
-        ctx.lineWidth =
-          3;
-
-        ctx.beginPath();
-
-        ctx.moveTo(
-          x - radius * 0.35,
-          y - radius * 0.8
-        );
-
-        ctx.lineTo(
-          x - radius * 0.75,
-          y - radius * 1.2
-        );
-
-        ctx.moveTo(
-          x + radius * 0.35,
-          y - radius * 0.8
-        );
-
-        ctx.lineTo(
-          x + radius * 0.75,
-          y - radius * 1.2
-        );
-
-        ctx.stroke();
-
-        drawEye(
-          x - radius * 0.18,
-          y - radius * 0.32,
-          radius * 0.06,
-          "#f59e0b"
-        );
-
-        drawEye(
-          x + radius * 0.18,
-          y - radius * 0.32,
-          radius * 0.06,
-          "#f59e0b"
-        );
-        break;
-
-      default:
-        ctx.beginPath();
-
-        ctx.arc(
-          x,
-          y,
-          radius,
-          0,
-          Math.PI * 2
-        );
-
-        ctx.fill();
-        ctx.stroke();
-    }
-  }
-
-  function getEnemyStrokeColor(enemy) {
-    if (
-      enemy.freezeTimer > 0 ||
-      enemy.slowTimer > 0
-    ) {
-      return "#67e8f9";
-    }
-
-    if (enemy.poisonTimer > 0) {
-      return "#bef264";
-    }
-
-    if (enemy.vulnerabilityTimer > 0) {
-      return "#fca5a5";
-    }
-
-    return enemy.aura;
-  }
-
-  function drawHpBar(
-    x,
-    y,
-    width,
-    height,
-    ratio,
-    color
-  ) {
-    var fillWidth;
-
-    roundedRectPath(
-      x - width / 2,
-      y - height / 2,
-      width,
-      height,
-      height / 2
+    el.traitModal.classList.add(
+      "is-visible"
     );
 
-    ctx.fillStyle =
-      "rgba(15,23,42,0.9)";
-
-    ctx.fill();
-
-    fillWidth = Math.max(
-      0,
-      width *
-      clamp(
-        ratio,
-        0,
-        1
-      )
-    );
-
-    if (fillWidth > 0) {
-      roundedRectPath(
-        x - width / 2,
-        y - height / 2,
-        fillWidth,
-        height,
-        height / 2
-      );
-
-      ctx.fillStyle =
-        color;
-
-      ctx.fill();
-    }
+    updateAll();
   }
 
-  function drawProjectiles() {
-    State.get().projectiles.forEach(
-      function (projectile) {
-        var x =
-          projectile.x *
-          tileSize;
-
-        var y =
-          projectile.y *
-          tileSize;
-
-        var previousX =
-          projectile.prevX *
-          tileSize;
-
-        var previousY =
-          projectile.prevY *
-          tileSize;
-
-        var radius =
-          Math.max(
-            2.5,
-            projectile.radius *
-            tileSize
-          );
-
-        ctx.save();
-
-        ctx.strokeStyle =
-          hexToRgba(
-            projectile.color,
-            0.45
-          );
-
-        ctx.lineWidth =
-          Math.max(
-            1.5,
-            radius * 0.7
-          );
-
-        ctx.beginPath();
-
-        ctx.moveTo(
-          previousX,
-          previousY
-        );
-
-        ctx.lineTo(
-          x,
-          y
-        );
-
-        ctx.stroke();
-
-        ctx.shadowColor =
-          projectile.color;
-
-        ctx.shadowBlur =
-          10;
-
-        ctx.fillStyle =
-          projectile.color;
-
-        ctx.beginPath();
-
-        ctx.arc(
-          x,
-          y,
-          radius,
-          0,
-          Math.PI * 2
-        );
-
-        ctx.fill();
-        ctx.restore();
-      }
+  function closeTraitModal() {
+    el.traitModal.classList.remove(
+      "is-visible"
     );
   }
 
-  function drawEffects() {
-    State.get().effects.forEach(
-      function (effect) {
-        var progress =
-          clamp(
-            effect.life /
-            effect.maxLife,
-            0,
-            1
-          );
+  function openRelicModal(choices) {
+    el.relicOptions.innerHTML =
+      "";
 
-        ctx.save();
+    choices.forEach(
+      function (relic) {
+        var button =
+          document.createElement("button");
 
-        if (effect.type === "lightning") {
-          drawLightningEffect(
-            effect,
-            progress
-          );
-        } else if (
-          effect.type === "explosion" ||
-          effect.type === "poisonCloud" ||
-          effect.type === "heroSkill"
-        ) {
-          ctx.globalAlpha =
-            progress;
+        button.className =
+          "choice-btn";
 
-          ctx.beginPath();
+        button.type =
+          "button";
 
-          ctx.arc(
-            effect.x * tileSize,
-            effect.y * tileSize,
+        button.innerHTML =
+          "<strong>" +
+          relic.name +
+          "</strong>" +
 
-            effect.radius *
-            tileSize *
-            (
-              1.2 -
-              progress * 0.2
-            ),
+          "<span>" +
+          relic.description +
+          "</span>";
 
-            0,
-            Math.PI * 2
-          );
-
-          ctx.fillStyle =
-            hexToRgba(
-              effect.color,
-
-              effect.type === "heroSkill"
-                ? 0.22
-                : 0.28
+        button.addEventListener(
+          "click",
+          function () {
+            Combat.selectRelic(
+              relic.id
             );
-
-          ctx.fill();
-
-          ctx.strokeStyle =
-            effect.color;
-
-          ctx.lineWidth =
-            effect.type === "heroSkill"
-              ? 4
-              : 2;
-
-          ctx.stroke();
-        } else if (
-          effect.type === "upgrade" ||
-          effect.type === "heroLevel" ||
-          effect.type === "iceBurst"
-        ) {
-          ctx.globalAlpha =
-            progress;
-
-          ctx.strokeStyle =
-            effect.color;
-
-          ctx.lineWidth =
-            3;
-
-          ctx.beginPath();
-
-          ctx.arc(
-            effect.x * tileSize,
-            effect.y * tileSize,
-
-            tileSize *
-            (
-              0.18 +
-              (
-                1 -
-                progress
-              ) *
-              0.55
-            ),
-
-            0,
-            Math.PI * 2
-          );
-
-          ctx.stroke();
-        } else if (
-          effect.type === "bossDeath" ||
-          effect.type === "death"
-        ) {
-          ctx.globalAlpha =
-            progress * 0.8;
-
-          ctx.fillStyle =
-            hexToRgba(
-              effect.color,
-              0.32
-            );
-
-          ctx.beginPath();
-
-          ctx.arc(
-            effect.x * tileSize,
-            effect.y * tileSize,
-
-            tileSize *
-            (
-              0.18 +
-              (
-                1 -
-                progress
-              ) *
-              (
-                effect.type === "bossDeath"
-                  ? 0.9
-                  : 0.45
-              )
-            ),
-
-            0,
-            Math.PI * 2
-          );
-
-          ctx.fill();
-        } else {
-          ctx.globalAlpha =
-            progress;
-
-          ctx.fillStyle =
-            effect.color;
-
-          ctx.beginPath();
-
-          ctx.arc(
-            effect.x * tileSize,
-            effect.y * tileSize,
-            tileSize * 0.17,
-            0,
-            Math.PI * 2
-          );
-
-          ctx.fill();
-        }
-
-        ctx.restore();
-      }
-    );
-  }
-
-  function drawLightningEffect(
-    effect,
-    progress
-  ) {
-    ctx.globalAlpha =
-      progress;
-
-    ctx.strokeStyle =
-      effect.color;
-
-    ctx.lineWidth =
-      3;
-
-    ctx.shadowColor =
-      effect.color;
-
-    ctx.shadowBlur =
-      12;
-
-    ctx.beginPath();
-
-    effect.points.forEach(
-      function (point, index) {
-        var x =
-          point.x *
-          tileSize +
-          (
-            Math.random() -
-            0.5
-          ) *
-          tileSize *
-          0.08;
-
-        var y =
-          point.y *
-          tileSize +
-          (
-            Math.random() -
-            0.5
-          ) *
-          tileSize *
-          0.08;
-
-        if (index === 0) {
-          ctx.moveTo(x, y);
-        } else {
-          ctx.lineTo(x, y);
-        }
-      }
-    );
-
-    ctx.stroke();
-  }
-
-  function drawFloaters() {
-    State.get().floaters.forEach(
-      function (floater) {
-        var progress =
-          clamp(
-            floater.life /
-            floater.maxLife,
-            0,
-            1
-          );
-
-        ctx.save();
-
-        ctx.globalAlpha =
-          progress;
-
-        ctx.fillStyle =
-          floater.color;
-
-        ctx.font =
-          "800 " +
-          Math.max(
-            10,
-            tileSize * 0.21
-          ) +
-          "px system-ui";
-
-        ctx.textAlign =
-          "center";
-
-        ctx.textBaseline =
-          "middle";
-
-        ctx.shadowColor =
-          "rgba(0,0,0,0.75)";
-
-        ctx.shadowBlur =
-          4;
-
-        ctx.fillText(
-          floater.text,
-          floater.x * tileSize,
-          floater.y * tileSize
+          }
         );
 
-        ctx.restore();
+        el.relicOptions.appendChild(
+          button
+        );
       }
+    );
+
+    el.relicModal.classList.add(
+      "is-visible"
+    );
+
+    updateAll();
+  }
+
+  function closeRelicModal() {
+    el.relicModal.classList.remove(
+      "is-visible"
     );
   }
 
-  function drawOverlayText() {
+  function closeAllModals() {
     var current =
       State.get();
 
-    var alpha;
-    var title;
+    current.traitModalTowerId =
+      null;
 
-    if (!current.started) {
-      return;
-    }
+    current.relicChoices =
+      [];
 
-    if (current.bossWarningTimer > 0) {
-      alpha =
-        0.32 +
-        Math.sin(
-          performance.now() /
-          90
-        ) *
-        0.1;
-
-      ctx.fillStyle =
-        "rgba(127,29,29," +
-        alpha +
-        ")";
-
-      ctx.fillRect(
-        0,
-        0,
-        viewportWidth,
-        viewportHeight
-      );
-
-      ctx.fillStyle =
-        "#fee2e2";
-
-      ctx.textAlign =
-        "center";
-
-      ctx.textBaseline =
-        "middle";
-
-      ctx.font =
-        "900 " +
-        Math.max(
-          24,
-          tileSize * 0.55
-        ) +
-        "px system-ui";
-
-      ctx.fillText(
-        "WARNING",
-        viewportWidth / 2,
-        viewportHeight / 2 - 12
-      );
-
-      ctx.fillStyle =
-        "#fecaca";
-
-      ctx.font =
-        "800 " +
-        Math.max(
-          12,
-          tileSize * 0.24
-        ) +
-        "px system-ui";
-
-      ctx.fillText(
-        "Boss Wave Incoming",
-        viewportWidth / 2,
-        viewportHeight / 2 + 22
-      );
-
-      return;
-    }
-
-    if (
-      !current.paused &&
-      current.status === "playing"
-    ) {
-      return;
-    }
-
-    ctx.fillStyle =
-      "rgba(2,6,23,0.56)";
-
-    ctx.fillRect(
-      0,
-      0,
-      viewportWidth,
-      viewportHeight
-    );
-
-    ctx.fillStyle =
-      "#fff";
-
-    ctx.textAlign =
-      "center";
-
-    ctx.textBaseline =
-      "middle";
-
-    ctx.font =
-      "900 " +
-      Math.max(
-        24,
-        tileSize * 0.5
-      ) +
-      "px system-ui";
-
-    title =
-      current.status === "gameOver"
-        ? "GAME OVER"
-        : current.status === "clear"
-          ? "CLEAR"
-          : "PAUSED";
-
-    ctx.fillText(
-      title,
-      viewportWidth / 2,
-      viewportHeight / 2
-    );
+    closeTraitModal();
+    closeRelicModal();
   }
 
-  function roundedRectPath(
-    x,
-    y,
-    width,
-    height,
-    radius
-  ) {
-    var r =
-      Math.min(
-        radius,
-        width / 2,
-        height / 2
+  function showToast(message) {
+    el.toast.textContent =
+      message;
+
+    el.toast.classList.add(
+      "is-visible"
+    );
+
+    window.clearTimeout(
+      showToast.timer
+    );
+
+    showToast.timer =
+      window.setTimeout(
+        function () {
+          el.toast.classList.remove(
+            "is-visible"
+          );
+        },
+        1450
       );
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-      x + r,
-      y
-    );
-
-    ctx.lineTo(
-      x + width - r,
-      y
-    );
-
-    ctx.quadraticCurveTo(
-      x + width,
-      y,
-      x + width,
-      y + r
-    );
-
-    ctx.lineTo(
-      x + width,
-      y + height - r
-    );
-
-    ctx.quadraticCurveTo(
-      x + width,
-      y + height,
-      x + width - r,
-      y + height
-    );
-
-    ctx.lineTo(
-      x + r,
-      y + height
-    );
-
-    ctx.quadraticCurveTo(
-      x,
-      y + height,
-      x,
-      y + height - r
-    );
-
-    ctx.lineTo(
-      x,
-      y + r
-    );
-
-    ctx.quadraticCurveTo(
-      x,
-      y,
-      x + r,
-      y
-    );
-
-    ctx.closePath();
-  }
-
-  function crystalPath(
-    x,
-    y,
-    width,
-    height
-  ) {
-    ctx.beginPath();
-
-    ctx.moveTo(
-      x,
-      y - height * 0.55
-    );
-
-    ctx.lineTo(
-      x + width * 0.48,
-      y - height * 0.05
-    );
-
-    ctx.lineTo(
-      x + width * 0.28,
-      y + height * 0.5
-    );
-
-    ctx.lineTo(
-      x - width * 0.28,
-      y + height * 0.5
-    );
-
-    ctx.lineTo(
-      x - width * 0.48,
-      y - height * 0.05
-    );
-
-    ctx.closePath();
-  }
-
-  function shieldPath(
-    x,
-    y,
-    radius
-  ) {
-    ctx.beginPath();
-
-    ctx.moveTo(
-      x,
-      y - radius
-    );
-
-    ctx.quadraticCurveTo(
-      x + radius * 0.8,
-      y - radius * 0.62,
-      x + radius * 0.68,
-      y + radius * 0.25
-    );
-
-    ctx.quadraticCurveTo(
-      x + radius * 0.5,
-      y + radius * 0.82,
-      x,
-      y + radius
-    );
-
-    ctx.quadraticCurveTo(
-      x - radius * 0.5,
-      y + radius * 0.82,
-      x - radius * 0.68,
-      y + radius * 0.25
-    );
-
-    ctx.quadraticCurveTo(
-      x - radius * 0.8,
-      y - radius * 0.62,
-      x,
-      y - radius
-    );
-
-    ctx.closePath();
-  }
-
-  function drawEye(
-    x,
-    y,
-    radius,
-    color
-  ) {
-    ctx.fillStyle =
-      color ||
-      "#111827";
-
-    ctx.beginPath();
-
-    ctx.arc(
-      x,
-      y,
-      radius,
-      0,
-      Math.PI * 2
-    );
-
-    ctx.fill();
-  }
-
-  function drawWing(
-    x,
-    y,
-    direction,
-    radius,
-    color
-  ) {
-    ctx.fillStyle =
-      color;
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-      x,
-      y
-    );
-
-    ctx.lineTo(
-      x +
-      direction *
-      radius *
-      1.25,
-
-      y -
-      radius *
-      0.62
-    );
-
-    ctx.lineTo(
-      x +
-      direction *
-      radius *
-      0.98,
-
-      y +
-      radius *
-      0.45
-    );
-
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-  }
-
-  function drawEar(
-    x,
-    y,
-    direction,
-    radius
-  ) {
-    ctx.beginPath();
-
-    ctx.moveTo(
-      x,
-      y
-    );
-
-    ctx.lineTo(
-      x +
-      direction *
-      radius *
-      0.62,
-
-      y -
-      radius *
-      0.38
-    );
-
-    ctx.lineTo(
-      x +
-      direction *
-      radius *
-      0.28,
-
-      y +
-      radius *
-      0.38
-    );
-
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-  }
-
-  function drawBlock(
-    x,
-    y,
-    width,
-    height,
-    color
-  ) {
-    ctx.fillStyle =
-      color;
-
-    roundedRectPath(
-      x - width / 2,
-      y - height / 2,
-      width,
-      height,
-      5
-    );
-
-    ctx.fill();
-    ctx.stroke();
-  }
-
-  function hexToRgba(hex, alpha) {
-    var value =
-      String(
-        hex || ""
-      ).replace(
-        "#",
-        ""
-      );
-
-    var red;
-    var green;
-    var blue;
-
-    if (value.length !== 6) {
-      return (
-        "rgba(255,255,255," +
-        alpha +
-        ")"
-      );
-    }
-
-    red =
-      parseInt(
-        value.slice(0, 2),
-        16
-      );
-
-    green =
-      parseInt(
-        value.slice(2, 4),
-        16
-      );
-
-    blue =
-      parseInt(
-        value.slice(4, 6),
-        16
-      );
-
-    return (
-      "rgba(" +
-      red +
-      "," +
-      green +
-      "," +
-      blue +
-      "," +
-      alpha +
-      ")"
-    );
   }
 
   function clamp(value, min, max) {
@@ -2918,11 +1494,25 @@
     );
   }
 
-  window.Abyss.Render = {
+  window.Abyss.UI = {
     init: init,
-    resize: resize,
-    render: render,
-    screenToCell: screenToCell,
-    getMetrics: getMetrics
+
+    updateAll: updateAll,
+    updateRuntime: updateRuntime,
+    updateActionMenu: updateActionMenu,
+
+    openTraitModal: openTraitModal,
+    closeTraitModal: closeTraitModal,
+
+    openRelicModal: openRelicModal,
+    closeRelicModal: closeRelicModal,
+
+    openBottomSheet: openBottomSheet,
+    closeBottomSheet: closeBottomSheet,
+
+    showToast: showToast,
+
+    beginNewGame: beginNewGame,
+    returnToMapSelect: returnToMapSelect
   };
 }());
