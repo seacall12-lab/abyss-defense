@@ -1,9 +1,7 @@
 (function () {
   "use strict";
 
-  var Abyss =
-    window.Abyss ||
-    {};
+  var Abyss = window.Abyss || {};
 
   var requiredModules = [
     {
@@ -24,18 +22,12 @@
     }
   ];
 
-  var missingModules =
-    requiredModules.filter(
-      function (module) {
-        return !Abyss[module.name];
-      }
-    );
+  var missingModules = requiredModules.filter(function (module) {
+    return !Abyss[module.name];
+  });
 
   function showStartupError(message) {
-    var box =
-      document.getElementById(
-        "startupError"
-      );
+    var box = document.getElementById("startupError");
 
     if (box) {
       box.hidden = false;
@@ -48,35 +40,22 @@
   if (missingModules.length > 0) {
     showStartupError(
       "게임 모듈 로드 실패\n\n" +
-      "누락된 모듈:\n" +
-      missingModules.map(
-        function (module) {
-          return (
-            "- " +
-            module.name +
-            " (" +
-            module.file +
-            ")"
-          );
-        }
-      ).join("\n") +
-      "\n\n해당 파일이 없거나 파일 내부 오류로 실행이 중단됐습니다."
+        "누락된 모듈:\n" +
+        missingModules
+          .map(function (module) {
+            return "- " + module.name + " (" + module.file + ")";
+          })
+          .join("\n") +
+        "\n\n해당 파일이 없거나 파일 내부 오류로 실행이 중단됐습니다."
     );
 
     return;
   }
 
-  var State =
-    Abyss.State;
-
-  var Combat =
-    Abyss.Combat;
-
-  var Render =
-    Abyss.Render;
-
-  var UI =
-    Abyss.UI;
+  var State = Abyss.State;
+  var Combat = Abyss.Combat;
+  var Render = Abyss.Render;
+  var UI = Abyss.UI;
 
   var lastTime = 0;
   var uiTimer = 0;
@@ -89,22 +68,16 @@
       lastTime = time;
     }
 
-    rawDt =
-      Math.min(
-        0.06,
-        (
-          time -
-          lastTime
-        ) /
-        1000
-      );
+    rawDt = Math.min(
+      0.06,
+      (time - lastTime) / 1000
+    );
 
     lastTime = time;
     current = State.get();
 
     Combat.update(
-      rawDt *
-      current.speed
+      rawDt * current.speed
     );
 
     Render.render();
@@ -116,33 +89,33 @@
       UI.updateRuntime();
     }
 
-    window.requestAnimationFrame(
-      gameLoop
-    );
+    window.requestAnimationFrame(gameLoop);
   }
 
   function init() {
     try {
       State.load();
-      Render.init();
+
+      /*
+       * UI가 먼저 DOM 요소를 캐시해야 한다.
+       * 이후 Render.init()의 resize()가
+       * UI.updateActionMenu()를 안전하게 호출할 수 있다.
+       */
       UI.init();
+      Render.init();
 
       console.log(
         "[Abyss] v0.8.1 정상 실행"
       );
 
-      window.requestAnimationFrame(
-        gameLoop
-      );
+      window.requestAnimationFrame(gameLoop);
     } catch (error) {
       showStartupError(
         "게임 초기화 실패\n\n" +
-        error.message +
-        (
-          error.stack
+          error.message +
+          (error.stack
             ? "\n\n" + error.stack
-            : ""
-        )
+            : "")
       );
     }
   }
