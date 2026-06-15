@@ -832,4 +832,3 @@ window.Abyss.Data = Data;
 window.ABYSS_DATA = Data;
 
 }());
-}());
