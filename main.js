@@ -1,34 +1,85 @@
 (function () {
   "use strict";
 
-  window.Abyss =
-    window.Abyss || {};
+  var Abyss =
+    window.Abyss ||
+    {};
+
+  var requiredModules = [
+    {
+      name: "State",
+      file: "state.js"
+    },
+    {
+      name: "Combat",
+      file: "combat.js"
+    },
+    {
+      name: "Render",
+      file: "render.js"
+    },
+    {
+      name: "UI",
+      file: "ui.js"
+    }
+  ];
+
+  var missingModules =
+    requiredModules.filter(
+      function (module) {
+        return !Abyss[module.name];
+      }
+    );
+
+  function showStartupError(message) {
+    var box =
+      document.getElementById(
+        "startupError"
+      );
+
+    if (box) {
+      box.hidden = false;
+      box.textContent = message;
+    }
+
+    console.error(message);
+  }
+
+  if (missingModules.length > 0) {
+    showStartupError(
+      "게임 모듈 로드 실패\n\n" +
+      "누락된 모듈:\n" +
+      missingModules.map(
+        function (module) {
+          return (
+            "- " +
+            module.name +
+            " (" +
+            module.file +
+            ")"
+          );
+        }
+      ).join("\n") +
+      "\n\n해당 파일이 없거나 파일 내부 오류로 실행이 중단됐습니다."
+    );
+
+    return;
+  }
 
   var State =
-    window.Abyss.State;
+    Abyss.State;
 
   var Combat =
-    window.Abyss.Combat;
+    Abyss.Combat;
 
   var Render =
-    window.Abyss.Render;
+    Abyss.Render;
 
   var UI =
-    window.Abyss.UI;
+    Abyss.UI;
 
   var lastTime = 0;
   var uiTimer = 0;
-
-  if (
-    !State ||
-    !Combat ||
-    !Render ||
-    !UI
-  ) {
-    throw new Error(
-      "main.js: 필수 게임 모듈을 찾을 수 없습니다."
-    );
-  }
 
   function gameLoop(time) {
     var rawDt;
@@ -71,13 +122,29 @@
   }
 
   function init() {
-    State.load();
-    Render.init();
-    UI.init();
+    try {
+      State.load();
+      Render.init();
+      UI.init();
 
-    window.requestAnimationFrame(
-      gameLoop
-    );
+      console.log(
+        "[Abyss] v0.8.1 정상 실행"
+      );
+
+      window.requestAnimationFrame(
+        gameLoop
+      );
+    } catch (error) {
+      showStartupError(
+        "게임 초기화 실패\n\n" +
+        error.message +
+        (
+          error.stack
+            ? "\n\n" + error.stack
+            : ""
+        )
+      );
+    }
   }
 
   init();
