@@ -826,5 +826,10 @@
     }
   };
 
-  window.Abyss.Data = Data;
+window.Abyss.Data = Data;
+
+/* 이전 버전 캐시 대응용 */
+window.ABYSS_DATA = Data;
+
+}());
 }());
