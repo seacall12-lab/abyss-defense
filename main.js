@@ -1,7 +1,8 @@
 (function () {
   "use strict";
 
-  var Abyss = window.Abyss || {};
+  var Abyss =
+    window.Abyss || {};
 
   var requiredModules = [
     {
@@ -23,15 +24,27 @@
     {
       name: "UI",
       file: "ui.js"
+    },
+    {
+      name: "Strategy",
+      file: "strategy.js"
     }
   ];
 
-  var missingModules = requiredModules.filter(function (module) {
-    return !Abyss[module.name];
-  });
+  var missingModules =
+    requiredModules.filter(
+      function (module) {
+        return !Abyss[module.name];
+      }
+    );
 
-  function showStartupError(message) {
-    var box = document.getElementById("startupError");
+  function showStartupError(
+    message
+  ) {
+    var box =
+      document.getElementById(
+        "startupError"
+      );
 
     if (box) {
       box.hidden = false;
@@ -41,20 +54,24 @@
     console.error(message);
   }
 
-  if (missingModules.length > 0) {
+  if (
+    missingModules.length > 0
+  ) {
     showStartupError(
       "게임 모듈 로드 실패\n\n" +
         "누락된 모듈:\n" +
         missingModules
-          .map(function (module) {
-            return (
-              "- " +
-              module.name +
-              " (" +
-              module.file +
-              ")"
-            );
-          })
+          .map(
+            function (module) {
+              return (
+                "- " +
+                module.name +
+                " (" +
+                module.file +
+                ")"
+              );
+            }
+          )
           .join("\n") +
         "\n\n해당 파일이 없거나 파일 내부 오류로 실행이 중단됐습니다."
     );
@@ -62,11 +79,23 @@
     return;
   }
 
-  var State = Abyss.State;
-  var Progression = Abyss.Progression;
-  var Combat = Abyss.Combat;
-  var Render = Abyss.Render;
-  var UI = Abyss.UI;
+  var State =
+    Abyss.State;
+
+  var Progression =
+    Abyss.Progression;
+
+  var Combat =
+    Abyss.Combat;
+
+  var Render =
+    Abyss.Render;
+
+  var UI =
+    Abyss.UI;
+
+  var Strategy =
+    Abyss.Strategy;
 
   var lastTime = 0;
   var uiTimer = 0;
@@ -81,21 +110,27 @@
 
     rawDt = Math.min(
       0.06,
-      (time - lastTime) / 1000
+      (
+        time -
+        lastTime
+      ) / 1000
     );
 
     lastTime = time;
     current = State.get();
 
     Combat.update(
-      rawDt * current.speed
+      rawDt *
+        current.speed
     );
 
     Render.render();
 
     uiTimer += rawDt;
 
-    if (uiTimer >= 0.1) {
+    if (
+      uiTimer >= 0.1
+    ) {
       uiTimer = 0;
       UI.updateRuntime();
     }
@@ -116,10 +151,16 @@
        */
       UI.init();
       Render.init();
+
+      /*
+       * 진행도와 전략 모듈은
+       * 기본 UI와 Canvas 초기화 이후 연결한다.
+       */
       Progression.init();
+      Strategy.init();
 
       console.log(
-        "[Abyss] v0.9.0 정상 실행"
+        "[Abyss] v0.9.5 정상 실행"
       );
 
       window.requestAnimationFrame(
@@ -131,7 +172,8 @@
           error.message +
           (
             error.stack
-              ? "\n\n" + error.stack
+              ? "\n\n" +
+                error.stack
               : ""
           )
       );
