@@ -9,6 +9,10 @@
       file: "state.js"
     },
     {
+      name: "Progression",
+      file: "progression.js"
+    },
+    {
       name: "Combat",
       file: "combat.js"
     },
@@ -43,7 +47,13 @@
         "누락된 모듈:\n" +
         missingModules
           .map(function (module) {
-            return "- " + module.name + " (" + module.file + ")";
+            return (
+              "- " +
+              module.name +
+              " (" +
+              module.file +
+              ")"
+            );
           })
           .join("\n") +
         "\n\n해당 파일이 없거나 파일 내부 오류로 실행이 중단됐습니다."
@@ -53,6 +63,7 @@
   }
 
   var State = Abyss.State;
+  var Progression = Abyss.Progression;
   var Combat = Abyss.Combat;
   var Render = Abyss.Render;
   var UI = Abyss.UI;
@@ -89,7 +100,9 @@
       UI.updateRuntime();
     }
 
-    window.requestAnimationFrame(gameLoop);
+    window.requestAnimationFrame(
+      gameLoop
+    );
   }
 
   function init() {
@@ -97,25 +110,30 @@
       State.load();
 
       /*
-       * UI가 먼저 DOM 요소를 캐시해야 한다.
-       * 이후 Render.init()의 resize()가
-       * UI.updateActionMenu()를 안전하게 호출할 수 있다.
+       * UI가 먼저 DOM 요소를 저장해야 한다.
+       * Render.init()의 resize 과정에서
+       * UI 함수를 호출할 수 있기 때문이다.
        */
       UI.init();
       Render.init();
+      Progression.init();
 
       console.log(
-        "[Abyss] v0.8.1 정상 실행"
+        "[Abyss] v0.9.0 정상 실행"
       );
 
-      window.requestAnimationFrame(gameLoop);
+      window.requestAnimationFrame(
+        gameLoop
+      );
     } catch (error) {
       showStartupError(
         "게임 초기화 실패\n\n" +
           error.message +
-          (error.stack
-            ? "\n\n" + error.stack
-            : "")
+          (
+            error.stack
+              ? "\n\n" + error.stack
+              : ""
+          )
       );
     }
   }
