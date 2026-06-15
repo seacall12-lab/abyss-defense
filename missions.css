@@ -1,0 +1,522 @@
+.mission-open-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 45px;
+  margin-top: 10px;
+  padding: 0 14px;
+  border:
+    1px solid
+    rgba(167, 139, 250, 0.28);
+  border-radius: 14px;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(76, 29, 149, 0.35),
+      rgba(30, 64, 175, 0.25)
+    );
+  color: #e9d5ff;
+  font-size: 12px;
+  font-weight: 900;
+  text-align: left;
+}
+
+.mission-open-btn strong {
+  min-width: 54px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background:
+    rgba(15, 23, 42, 0.7);
+  color: #c4b5fd;
+  font-size: 11px;
+  text-align: center;
+}
+
+.mission-open-btn.has-reward {
+  border-color:
+    rgba(250, 204, 21, 0.55);
+  box-shadow:
+    0 0 18px
+    rgba(250, 204, 21, 0.12);
+  animation:
+    mission-reward-pulse
+    1.5s
+    ease-in-out
+    infinite;
+}
+
+.mission-open-btn.has-reward strong {
+  background:
+    rgba(161, 98, 7, 0.34);
+  color: #fde047;
+}
+
+.mission-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+  padding:
+    14px
+    12px
+    calc(
+      14px +
+      env(safe-area-inset-bottom)
+    );
+  background:
+    rgba(2, 6, 23, 0.76);
+  backdrop-filter: blur(6px);
+}
+
+.mission-modal.is-visible {
+  display: flex;
+}
+
+.mission-card {
+  width:
+    min(
+      100%,
+      480px
+    );
+  max-height:
+    min(
+      86vh,
+      700px
+    );
+  overflow-y: auto;
+  padding: 17px;
+  border:
+    1px solid
+    rgba(167, 139, 250, 0.25);
+  border-radius: 22px;
+  background:
+    radial-gradient(
+      circle at 90% 0%,
+      rgba(124, 58, 237, 0.18),
+      transparent 34%
+    ),
+    #0b1120;
+  box-shadow:
+    0 24px 80px
+    rgba(0, 0, 0, 0.52);
+}
+
+.mission-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.mission-head p {
+  margin: 0;
+  color: #a78bfa;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+}
+
+.mission-head h2 {
+  margin: 3px 0 0;
+  color: #f8fafc;
+  font-size: 21px;
+}
+
+#missionCloseBtn {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  border:
+    1px solid
+    rgba(148, 163, 184, 0.18);
+  border-radius: 12px;
+  background:
+    rgba(30, 41, 59, 0.85);
+  color: #cbd5e1;
+  font-size: 23px;
+  line-height: 1;
+}
+
+.mission-tabs {
+  display: grid;
+  grid-template-columns:
+    1fr
+    1fr;
+  gap: 7px;
+  margin: 15px 0 12px;
+  padding: 4px;
+  border-radius: 13px;
+  background:
+    rgba(15, 23, 42, 0.8);
+}
+
+.mission-tab {
+  min-height: 38px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.mission-tab.is-active {
+  background:
+    linear-gradient(
+      135deg,
+      rgba(109, 40, 217, 0.85),
+      rgba(37, 99, 235, 0.8)
+    );
+  color: #fff;
+}
+
+.mission-panel {
+  display: none;
+}
+
+.mission-panel.is-active {
+  display: block;
+}
+
+.mission-date,
+.achievement-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 9px;
+  padding: 0 2px;
+}
+
+.mission-date span,
+.achievement-summary span {
+  color: #c4b5fd;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.mission-date small {
+  color: #64748b;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.achievement-summary strong {
+  color: #facc15;
+  font-size: 12px;
+}
+
+#missionDailyList,
+#achievementList {
+  display: grid;
+  gap: 9px;
+}
+
+.mission-item {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr)
+    auto;
+  gap: 8px 12px;
+  align-items: center;
+  padding: 12px;
+  border:
+    1px solid
+    rgba(148, 163, 184, 0.16);
+  border-radius: 15px;
+  background:
+    rgba(15, 23, 42, 0.82);
+}
+
+.mission-item.is-complete {
+  border-color:
+    rgba(74, 222, 128, 0.34);
+  background:
+    linear-gradient(
+      135deg,
+      rgba(22, 101, 52, 0.16),
+      rgba(15, 23, 42, 0.88)
+    );
+}
+
+.mission-item.is-claimed {
+  opacity: 0.68;
+}
+
+.mission-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.mission-copy strong,
+.achievement-item strong {
+  color: #f8fafc;
+  font-size: 12px;
+}
+
+.mission-copy span,
+.achievement-item div span {
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.mission-bar {
+  grid-column: 1 / 2;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background:
+    rgba(51, 65, 85, 0.84);
+}
+
+.mission-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background:
+    linear-gradient(
+      90deg,
+      #8b5cf6,
+      #38bdf8
+    );
+  transition:
+    width
+    0.25s
+    ease;
+}
+
+.mission-count {
+  grid-column: 1 / 2;
+  color: #7dd3fc;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.mission-claim {
+  grid-column: 2 / 3;
+  grid-row: 1 / 4;
+  min-width: 76px;
+  min-height: 42px;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: 11px;
+  background:
+    linear-gradient(
+      135deg,
+      #7c3aed,
+      #2563eb
+    );
+  color: #fff;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.mission-claim:disabled {
+  cursor: default;
+  background:
+    rgba(51, 65, 85, 0.82);
+  color: #64748b;
+  opacity: 1;
+}
+
+.mission-item.is-complete:not(
+  .is-claimed
+) .mission-claim {
+  background:
+    linear-gradient(
+      135deg,
+      #15803d,
+      #0891b2
+    );
+  box-shadow:
+    0 0 15px
+    rgba(74, 222, 128, 0.16);
+}
+
+.achievement-item {
+  display: grid;
+  grid-template-columns:
+    34px
+    minmax(0, 1fr)
+    auto;
+  gap: 10px;
+  align-items: center;
+  min-height: 64px;
+  padding: 10px 11px;
+  border:
+    1px solid
+    rgba(148, 163, 184, 0.14);
+  border-radius: 14px;
+  background:
+    rgba(15, 23, 42, 0.76);
+  opacity: 0.58;
+}
+
+.achievement-item.is-unlocked {
+  border-color:
+    rgba(250, 204, 21, 0.3);
+  background:
+    linear-gradient(
+      135deg,
+      rgba(161, 98, 7, 0.14),
+      rgba(15, 23, 42, 0.88)
+    );
+  opacity: 1;
+}
+
+.achievement-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background:
+    rgba(51, 65, 85, 0.78);
+  color: #64748b;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.achievement-item.is-unlocked
+.achievement-icon {
+  background:
+    rgba(161, 98, 7, 0.28);
+  color: #fde047;
+}
+
+.achievement-item div {
+  display: grid;
+  gap: 3px;
+}
+
+.achievement-item > small {
+  color: #facc15;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.mission-notice {
+  position: fixed;
+  top:
+    max(
+      82px,
+      calc(
+        env(safe-area-inset-top) +
+        76px
+      )
+    );
+  left: 50%;
+  z-index: 90;
+  display: grid;
+  gap: 2px;
+  width:
+    min(
+      calc(100% - 32px),
+      410px
+    );
+  padding: 11px 14px;
+  border:
+    1px solid
+    rgba(250, 204, 21, 0.34);
+  border-radius: 14px;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(120, 53, 15, 0.95),
+      rgba(76, 29, 149, 0.94)
+    );
+  box-shadow:
+    0 16px 42px
+    rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  transform:
+    translate(-50%, -18px)
+    scale(0.97);
+}
+
+.mission-notice.is-visible {
+  animation:
+    mission-notice-in
+    0.24s
+    ease-out
+    forwards;
+}
+
+.mission-notice span {
+  color: #fde68a;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+}
+
+.mission-notice strong {
+  color: #fff;
+  font-size: 13px;
+}
+
+.mission-notice small {
+  color: #fde047;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+@keyframes mission-notice-in {
+  to {
+    opacity: 1;
+    transform:
+      translate(-50%, 0)
+      scale(1);
+  }
+}
+
+@keyframes mission-reward-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.012);
+  }
+}
+
+@media (max-width: 380px) {
+  .mission-card {
+    padding: 15px;
+    border-radius: 19px;
+  }
+
+  .mission-item {
+    grid-template-columns:
+      minmax(0, 1fr)
+      70px;
+  }
+
+  .mission-claim {
+    min-width: 70px;
+    padding: 6px;
+  }
+
+  .achievement-item {
+    grid-template-columns:
+      31px
+      minmax(0, 1fr)
+      auto;
+    gap: 8px;
+  }
+
+  .achievement-icon {
+    width: 31px;
+    height: 31px;
+  }
+}
